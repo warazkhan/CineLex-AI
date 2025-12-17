@@ -1,14 +1,25 @@
 # agents/agent_runner.py
 
+
+import sys
+from pathlib import Path
+
+# Add project root to Python path
+PROJECT_ROOT = Path(__file__).resolve().parents[2]  # 2 levels up
+sys.path.append(str(PROJECT_ROOT))
+
+# Now config import will work
+from config.data_config import IMDB_CSV_PATH
+
 import pandas as pd
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
 # ------------------------------
 # 1. Load Dataset
 # ------------------------------
-CSV_PATH = "data/imdb/imdb_top_1000.csv"
 
-df = pd.read_csv(CSV_PATH)
+
+df = pd.read_csv(IMDB_CSV_PATH)
 df["IMDB_Rating"] = pd.to_numeric(df["IMDB_Rating"], errors="coerce")
 
 top_movies = (

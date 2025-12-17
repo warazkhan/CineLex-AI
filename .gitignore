@@ -1,2 +1,16 @@
-.env
+# Virtual environments
+.venv/
 venv/
+
+# Environment variables
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+
+# HuggingFace cache
+.cache/
+
+# Kaggle cache
+kaggle.json
