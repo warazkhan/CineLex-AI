@@ -1,31 +1,22 @@
-# agents/agent_runner.py
-
-
 import sys
 from pathlib import Path
+import pandas as pd
 
 # Add project root to Python path
-PROJECT_ROOT = Path(__file__).resolve().parents[2]  # 2 levels up
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.append(str(PROJECT_ROOT))
 
-# Now config import will work
 from config.data_config import IMDB_CSV_PATH
-
-import pandas as pd
-from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+from utils.llm_utils import generate
 
 # ------------------------------
 # 1. Load Dataset
 # ------------------------------
-
-
 df = pd.read_csv(IMDB_CSV_PATH)
 df["IMDB_Rating"] = pd.to_numeric(df["IMDB_Rating"], errors="coerce")
 
 top_movies = (
-    df[
-        ["Series_Title", "Released_Year", "Genre", "IMDB_Rating", "Director"]
-    ]
+    df[["Series_Title", "Released_Year", "Genre", "IMDB_Rating", "Director"]]
     .dropna()
     .sort_values("IMDB_Rating", ascending=False)
     .head(3)
@@ -40,34 +31,9 @@ for m in top_movies:
     )
 
 # ------------------------------
-# 2. Load Local LLM
-# ------------------------------
-MODEL_NAME = "google/flan-t5-base"
-print("\nLoading Flan-T5 model (CPU)...")
-
-tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-model = AutoModelForSeq2SeqLM.from_pretrained(MODEL_NAME)
-
-def generate(prompt: str) -> str:
-    inputs = tokenizer(
-        prompt,
-        return_tensors="pt",
-        truncation=True,
-        max_length=256
-    )
-    outputs = model.generate(
-        **inputs,
-        max_new_tokens=60,
-        num_beams=4,           # IMPORTANT
-        repetition_penalty=1.5
-    )
-    return tokenizer.decode(outputs[0], skip_special_tokens=True)
-
-# ------------------------------
-# 3. Agentic LLM Calls (Correct)
+# 2. LLM Summaries
 # ------------------------------
 print("\nLLM Summaries:")
-
 for movie in top_movies:
     prompt = f"""
 Write ONE factual sentence about the movie below.
