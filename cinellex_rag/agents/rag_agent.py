@@ -3,7 +3,6 @@ from pathlib import Path
 import pandas as pd
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain.docstore.document import Document
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.append(str(PROJECT_ROOT))
@@ -39,7 +38,7 @@ vector_store = FAISS.load_local(
 )
 retriever = vector_store.as_retriever()
 
-print("🎬 Movie Hybrid QA Agent ready! Type 'exit' to quit.\n")
+print("🎬 CineLex AI ready! Type 'exit' to quit.\n")
 
 # ------------------------------
 # Helper functions
@@ -55,6 +54,9 @@ def clean_doc_text(text: str) -> str:
             seen.add(line)
     return ", ".join(clean_lines)
 
+# ------------------------------
+# Analytics functions
+# ------------------------------
 def pandas_analytics(query: str, k: int = 5):
     q_lower = query.lower()
     if "top" in q_lower and "movie" in q_lower:
@@ -84,6 +86,9 @@ def pandas_analytics(query: str, k: int = 5):
 
     return None
 
+# ------------------------------
+# RAG functions
+# ------------------------------
 def rag_answer(query: str, k: int = 5):
     docs = retriever.get_relevant_documents(query)[:k]
     context_list = []
@@ -114,16 +119,70 @@ Question: {query}
     return generate(prompt, max_new_tokens=200)
 
 # ------------------------------
+# Movie Recommender
+# ------------------------------
+class MovieRecommender:
+    def __init__(self, dataframe: pd.DataFrame):
+        self.df = dataframe
+
+    def recommend_similar(self, movie_title: str, k: int = 5, more_modern: bool = False):
+        movie_title_lower = movie_title.lower()
+        if movie_title_lower not in self.df["Series_Title"].str.lower().values:
+            return "Movie not found in dataset."
+
+        target_row = self.df[self.df["Series_Title"].str.lower() == movie_title_lower].iloc[0]
+        target_genres = set(target_row["Genre"].split(", "))
+        target_year = target_row["Released_Year"]
+
+        df_filtered = self.df.copy()
+
+        if more_modern:
+            df_filtered = df_filtered[df_filtered["Released_Year"] > target_year]
+
+        df_filtered["Genre_Overlap"] = df_filtered["Genre"].apply(lambda x: len(target_genres.intersection(set(x.split(", ")))))
+
+        df_sorted = df_filtered.sort_values(["Genre_Overlap", "IMDB_Rating"], ascending=[False, False])
+        df_sorted = df_sorted[df_sorted["Series_Title"].str.lower() != movie_title_lower].head(k)
+
+        if df_sorted.empty:
+            return "No similar movies found with the specified criteria."
+
+        return "\n".join([f"{row['Series_Title']} ({int(row['Released_Year'])}) – Rating: {row['IMDB_Rating']}" for _, row in df_sorted.iterrows()])
+
+
+# ------------------------------
+# Initialize recommender
+# ------------------------------
+recommender = MovieRecommender(df)
+
+# ------------------------------
 # Main loop
 # ------------------------------
+import re
+
 while True:
     query = input("Enter your question: ").strip()
     if query.lower() in {"exit", "quit"}:
         break
 
+    # 1️⃣ Analytics queries
     answer = pandas_analytics(query)
     if answer:
         print(f"\nAnswer:\n{answer}\n")
-    else:
-        answer = rag_answer(query)
+        continue
+
+    # 2️⃣ Recommendation queries
+    if "like" in query.lower() or "recommend" in query.lower():
+        more_modern_flag = "more modern" in query.lower()
+        match = re.search(r"like\s+(.+?)(?:\s+but|\s*$)", query, re.I)
+        movie_title = match.group(1).strip() if match else None
+        if movie_title:
+            answer = recommender.recommend_similar(movie_title, more_modern=more_modern_flag)
+        else:
+            answer = "Please specify a movie to find similar recommendations."
         print(f"\nAnswer:\n{answer}\n")
+        continue
+
+    # 3️⃣ RAG queries
+    answer = rag_answer(query)
+    print(f"\nAnswer:\n{answer}\n")
