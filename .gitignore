@@ -12,5 +12,16 @@ __pycache__/
 # HuggingFace cache
 .cache/
 
-# Kaggle cache
+# Kaggle credentials
 kaggle.json
+
+# FAISS / vector store artifacts
+rag-imdb-knowledge-agent/retrieval/
+
+# Editor / OS files
+.vscode/
+.DS_Store
+
+# Logs & temp
+*.log
+tmp/
