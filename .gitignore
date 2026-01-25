@@ -1,0 +1,27 @@
+# Virtual environments
+.venv/
+venv/
+
+# Environment variables
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+
+# HuggingFace cache
+.cache/
+
+# Kaggle credentials
+kaggle.json
+
+# FAISS / vector store artifacts
+rag-imdb-knowledge-agent/retrieval/
+
+# Editor / OS files
+.vscode/
+.DS_Store
+
+# Logs & temp
+*.log
+tmp/
