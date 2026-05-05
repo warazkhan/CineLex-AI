@@ -1,0 +1,1 @@
+{'answer': 'The Hateful Eight: In the dead of a Wyoming winter, a bounty hunter and his prisoner find shelter in a cabin currently inhabited by a collection of nefarious characters.', 'route': 'rag', 'metadata': {}}

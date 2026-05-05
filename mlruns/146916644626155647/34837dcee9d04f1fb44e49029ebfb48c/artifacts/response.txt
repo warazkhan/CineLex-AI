@@ -1,0 +1,1 @@
+{'answer': 'The Shawshank Redemption (1994) – Rating: 9.3\nThe Godfather (1972) – Rating: 9.2\nThe Godfather: Part II (1974) – Rating: 9.0\n12 Angry Men (1957) – Rating: 9.0\nThe Dark Knight (2008) – Rating: 9.0', 'route': 'analytics', 'metadata': {}}

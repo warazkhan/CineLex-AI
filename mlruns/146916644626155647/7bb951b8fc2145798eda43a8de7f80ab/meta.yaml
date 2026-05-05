@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/enggd/Documents/GitHub/AI-Learning/mlruns/146916644626155647/7bb951b8fc2145798eda43a8de7f80ab/artifacts
+end_time: 1778001966909
+entry_point_name: ''
+experiment_id: '146916644626155647'
+lifecycle_stage: active
+run_id: 7bb951b8fc2145798eda43a8de7f80ab
+run_name: smiling-perch-716
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1778001961872
+status: 3
+tags: []
+user_id: enggd

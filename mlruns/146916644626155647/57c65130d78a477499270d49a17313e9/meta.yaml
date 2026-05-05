@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/enggd/Documents/GitHub/AI-Learning/mlruns/146916644626155647/57c65130d78a477499270d49a17313e9/artifacts
+end_time: 1778004040860
+entry_point_name: ''
+experiment_id: '146916644626155647'
+lifecycle_stage: active
+run_id: 57c65130d78a477499270d49a17313e9
+run_name: languid-donkey-490
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1778004040750
+status: 3
+tags: []
+user_id: enggd

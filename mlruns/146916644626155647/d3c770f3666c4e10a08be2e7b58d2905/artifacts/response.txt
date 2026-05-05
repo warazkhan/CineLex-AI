@@ -1,0 +1,1 @@
+{'answer': 'Title: The Lego Movie\nYear: 2014\nRating: 7.7\nOverview: An ordinary LEGO construction worker, thought to be the prophesied as "special", is recruited to join a quest to stop an evil tyrant from gluing the LEGO universe into eternal stasis.', 'route': 'rag', 'metadata': {}}

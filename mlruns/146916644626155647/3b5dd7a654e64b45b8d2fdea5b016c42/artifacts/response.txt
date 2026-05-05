@@ -1,0 +1,1 @@
+{'answer': 'The 39 Steps (1935) – Rating: 7.6\nLifeboat (1944) – Rating: 7.6\nFrom Here to Eternity (1953) – Rating: 7.6\nGiant (1956) – Rating: 7.6\nSaw (2004) – Rating: 7.6', 'route': 'analytics', 'metadata': {'source': 'analytics'}}
