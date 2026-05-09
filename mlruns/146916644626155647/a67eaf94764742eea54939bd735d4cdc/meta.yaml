@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/enggd/Documents/GitHub/AI-Learning/mlruns/146916644626155647/a67eaf94764742eea54939bd735d4cdc/artifacts
+end_time: 1778347243775
+entry_point_name: ''
+experiment_id: '146916644626155647'
+lifecycle_stage: active
+run_id: a67eaf94764742eea54939bd735d4cdc
+run_name: capricious-worm-109
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1778347243685
+status: 3
+tags: []
+user_id: enggd

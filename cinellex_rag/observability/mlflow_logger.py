@@ -1,34 +1,45 @@
 import mlflow
 import time
-from functools import wraps
-
 
 mlflow.set_experiment("cinellex-ai")
 
 
-def start_run(query: str, route: str):
-    mlflow.start_run()
-    mlflow.log_param("query", query)
-    mlflow.log_param("route", route)
-    return time.time()
+class MLflowLogger:
+    def __init__(self):
+        self._query = None
+        self._route = None
+        self._source = None
+        self._start_time = None
+
+    def start_run(self, query: str):
+        self._query = query
+        self._start_time = time.time()
+
+    def log_route(self, route: str):
+        self._route = route
+
+    def log_node(self, node: str, metadata: dict = None):
+        pass  # collected at end
+
+    def log_latency(self, step: str):
+        pass  # collected at end
+
+    def log_response(self, response: dict):
+        # extract source from response metadata
+        if isinstance(response, dict):
+            self._source = response.get("metadata", {}).get("source", "unknown")
+
+    def end_run(self):
+        with mlflow.start_run():
+            # params
+            mlflow.log_param("query", self._query or "")
+            mlflow.log_param("route", self._route or "")
+            mlflow.log_param("source", self._source or "unknown")
+
+            # metrics — now visible in Metrics tab
+            latency = round((time.time() - self._start_time) * 1000)
+            mlflow.log_metric("latency_ms", latency)
 
 
-def log_latency(start_time: float, key: str):
-    latency = time.time() - start_time
-    mlflow.log_metric(key, latency)
-    return latency
-
-
-def log_output(output: str):
-    mlflow.log_param("output", output)
-
-
-def end_run():
-    mlflow.end_run()
-
-def log_run(query: str, route: str, response):
-    with mlflow.start_run():
-        mlflow.log_param("query", query)
-        mlflow.log_param("route", route)
-
-        mlflow.log_text(str(response), "response.txt")
+# singleton
+logger = MLflowLogger()

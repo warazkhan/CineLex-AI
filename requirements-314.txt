@@ -1,0 +1,35 @@
+# Core
+pandas
+numpy
+scikit-learn
+
+# LangChain stack
+langchain
+langchain-community
+langchain-core
+langchain-text-splitters
+langchain-huggingface
+langchain-chroma
+langgraph
+
+# Vector DB
+chromadb
+faiss-cpu
+
+# Embeddings + LLM
+sentence-transformers
+transformers
+torch
+huggingface-hub
+
+# MLflow
+mlflow
+
+# CrewAI
+crewai
+
+# Utilities
+python-dotenv
+pydantic
+requests
+tqdm

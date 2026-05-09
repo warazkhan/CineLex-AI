@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/enggd/Documents/GitHub/AI-Learning/mlruns/146916644626155647/1f99855d694f4532854f55a0cc9318ea/artifacts
+end_time: 1778356679743
+entry_point_name: ''
+experiment_id: '146916644626155647'
+lifecycle_stage: active
+run_id: 1f99855d694f4532854f55a0cc9318ea
+run_name: suave-quail-848
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1778356679600
+status: 3
+tags: []
+user_id: enggd

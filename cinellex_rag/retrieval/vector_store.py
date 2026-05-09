@@ -1,15 +1,15 @@
-from langchain_community.vectorstores import FAISS
+from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
-from config.data_config import VECTOR_STORE_PATH
+from config.data_config import CHROMA_STORE_PATH
 
 embedding_model = HuggingFaceEmbeddings(
     model_name="sentence-transformers/all-MiniLM-L6-v2"
 )
 
-vector_store = FAISS.load_local(
-    str(VECTOR_STORE_PATH),
-    embeddings=embedding_model,
-    allow_dangerous_deserialization=True
+vector_store = Chroma(
+    collection_name="cinellex",
+    embedding_function=embedding_model,
+    persist_directory=str(CHROMA_STORE_PATH)
 )
 
 retriever = vector_store.as_retriever()

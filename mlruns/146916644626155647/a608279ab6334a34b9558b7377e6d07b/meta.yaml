@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/enggd/Documents/GitHub/AI-Learning/mlruns/146916644626155647/a608279ab6334a34b9558b7377e6d07b/artifacts
+end_time: 1778340809776
+entry_point_name: ''
+experiment_id: '146916644626155647'
+lifecycle_stage: active
+run_id: a608279ab6334a34b9558b7377e6d07b
+run_name: adaptable-worm-52
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1778340809628
+status: 3
+tags: []
+user_id: enggd

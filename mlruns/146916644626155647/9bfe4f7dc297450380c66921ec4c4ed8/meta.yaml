@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/enggd/Documents/GitHub/AI-Learning/mlruns/146916644626155647/9bfe4f7dc297450380c66921ec4c4ed8/artifacts
+end_time: 1778358966873
+entry_point_name: ''
+experiment_id: '146916644626155647'
+lifecycle_stage: active
+run_id: 9bfe4f7dc297450380c66921ec4c4ed8
+run_name: resilient-fox-387
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1778358966734
+status: 3
+tags: []
+user_id: enggd

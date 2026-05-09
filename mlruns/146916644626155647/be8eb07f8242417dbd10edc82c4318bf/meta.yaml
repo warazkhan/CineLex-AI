@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/enggd/Documents/GitHub/AI-Learning/mlruns/146916644626155647/be8eb07f8242417dbd10edc82c4318bf/artifacts
+end_time: 1778359057768
+entry_point_name: ''
+experiment_id: '146916644626155647'
+lifecycle_stage: active
+run_id: be8eb07f8242417dbd10edc82c4318bf
+run_name: fun-cub-413
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1778359057640
+status: 3
+tags: []
+user_id: enggd

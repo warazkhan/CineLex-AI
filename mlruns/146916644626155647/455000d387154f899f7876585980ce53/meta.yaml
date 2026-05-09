@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/enggd/Documents/GitHub/AI-Learning/mlruns/146916644626155647/455000d387154f899f7876585980ce53/artifacts
+end_time: 1778358096391
+entry_point_name: ''
+experiment_id: '146916644626155647'
+lifecycle_stage: active
+run_id: 455000d387154f899f7876585980ce53
+run_name: nimble-skink-75
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1778358096252
+status: 3
+tags: []
+user_id: enggd
