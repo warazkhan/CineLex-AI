@@ -2,6 +2,13 @@ from crewai import Crew
 from cinellex_rag.crew.agents import rag_agent, analytics_agent
 from cinellex_rag.crew.tasks import rag_task, analytics_task
 
+# Single source of truth for analytics routing.
+# Must stay in sync with analytics_keywords in graph/nodes.py.
+ANALYTICS_KEYWORDS = [
+    "top", "best", "worst", "list", "highest",
+    "lowest", "latest", "recent", "release", "releases", "director"
+]
+
 
 class MovieCrew:
 
@@ -13,14 +20,11 @@ class MovieCrew:
 
     def route(self, query: str) -> str:
         q = query.lower()
-
-        if any(x in q for x in ["top", "best", "worst", "list", "highest", "lowest"]):
+        if any(x in q for x in ANALYTICS_KEYWORDS):
             return "analytics"
-
         return "rag"
 
     def run(self, query: str):
-
         task_type = self.route(query)
 
         if task_type == "rag":
@@ -30,7 +34,6 @@ class MovieCrew:
                 tasks=[task],
                 verbose=True
             )
-
         else:
             task = analytics_task(self.agents["analytics"], query)
             crew = Crew(

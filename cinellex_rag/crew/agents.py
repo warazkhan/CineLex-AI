@@ -9,18 +9,16 @@ from cinellex_rag.core.analytics import handle_analytics
 load_dotenv()
 
 # ---------------------------
-# GROQ LLM (Llama 3.3 70B)
+# GROQ LLM (Llama 3.1 8B)
+# Free tier: 6000 TPM
+# num_retries=3 → litellm will auto-wait and retry on RateLimitError
+# max_tokens=300 → keeps each call small to preserve TPM headroom
 # ---------------------------
-# groq_llm = LLM(
-#     model="groq/llama-3.3-70b-versatile",
-#     api_key=os.environ.get("GROQ_API_KEY"),
-#     max_tokens=500
-# )
-
 groq_llm = LLM(
-    model="groq/llama-3.1-8b-instant",  # ← smaller, higher rate limit
+    model="groq/llama-3.1-8b-instant",
     api_key=os.environ.get("GROQ_API_KEY"),
-    max_tokens=500
+    max_tokens=300,
+    num_retries=3
 )
 
 
@@ -63,6 +61,7 @@ analytics_tool = AnalyticsTool()
 
 # ---------------------------
 # RAG SPECIALIST
+# max_iter=2: forces exactly one tool call then a final answer — no looping
 # ---------------------------
 rag_agent = Agent(
     role="Movie Knowledge Expert",
@@ -71,12 +70,14 @@ rag_agent = Agent(
     tools=[rag_tool],
     llm=groq_llm,
     verbose=True,
-    allow_delegation=False
+    allow_delegation=False,
+    max_iter=2
 )
 
 
 # ---------------------------
 # ANALYTICS SPECIALIST
+# max_iter=2: forces exactly one tool call then a final answer — no looping
 # ---------------------------
 analytics_agent = Agent(
     role="Movie Data Analyst",
@@ -85,5 +86,6 @@ analytics_agent = Agent(
     tools=[analytics_tool],
     llm=groq_llm,
     verbose=True,
-    allow_delegation=False
+    allow_delegation=False,
+    max_iter=2
 )

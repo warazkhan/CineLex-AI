@@ -1,6 +1,13 @@
+import re
+import time
 from cinellex_rag.core.schema import build_response
 from cinellex_rag.observability.mlflow_logger import logger
 from cinellex_rag.tools.registry import ToolRegistry
+
+ANALYTICS_KEYWORDS = [
+    "top", "best", "worst", "list", "highest",
+    "lowest", "latest", "recent", "release", "releases", "director"
+]
 
 
 def route_node(state):
@@ -8,21 +15,7 @@ def route_node(state):
 
     query = state["query"].lower()
 
-    analytics_keywords = [
-    "top",
-    "best",
-    "worst",
-    "list",
-    "highest",
-    "lowest",
-    "latest",
-    "recent",
-    "release",
-    "releases",
-    "director"
-    ]
-
-    if any(x in query for x in analytics_keywords):
+    if any(x in query for x in ANALYTICS_KEYWORDS):
         state["route"] = "analytics"
     else:
         state["route"] = "rag"
@@ -31,41 +24,57 @@ def route_node(state):
     return state
 
 
+def _parse_retry_wait(error_msg: str, default: float = 15.0) -> float:
+    """Extract wait seconds from Groq rate limit error message."""
+    match = re.search(r'try again in (\d+(?:\.\d+)?)s', str(error_msg))
+    return float(match.group(1)) + 1.0 if match else default
+
+
 def crew_node(state):
     """
-    CrewAI with fallback to direct tool execution.
+    Primary: CrewAI with manual rate-limit backoff (3 attempts).
+    Fallback: direct tool execution if all attempts fail.
     """
     from cinellex_rag.crew.crew import MovieCrew
 
-    try:
-        crew = MovieCrew()
-        result = crew.run(state["query"])
+    max_attempts = 3
 
-        state["result"] = {
-            "answer": str(result),
-            "source": "crewai"
-        }
+    for attempt in range(1, max_attempts + 1):
+        try:
+            crew = MovieCrew()
+            result = crew.run(state["query"])
 
-        logger.log_node("crewai_execution", {
-            "query": state["query"]
-        })
+            state["result"] = {
+                "answer": str(result),
+                "source": "crewai"
+            }
 
-    except Exception as e:
-        # fallback to direct tool execution
-        print(f"\n[Fallback] CrewAI failed ({type(e).__name__}), using direct tool...\n")
+            logger.log_node("crewai_execution", {"query": state["query"]})
+            return state
 
-        result = ToolRegistry.execute(state["route"], state["query"])
+        except Exception as e:
+            error_str = str(e)
+            is_rate_limit = "RateLimitError" in error_str or "rate_limit_exceeded" in error_str
 
-        state["result"] = {
-            "answer": result.get("answer", str(result)) if isinstance(result, dict) else str(result),
-            "source": "fallback"
-        }
+            if is_rate_limit and attempt < max_attempts:
+                wait = _parse_retry_wait(error_str)
+                print(f"\n[Rate Limit] Attempt {attempt}/{max_attempts} — waiting {wait:.1f}s before retry...\n")
+                time.sleep(wait)
+                continue
 
-        logger.log_node("fallback_execution", {
-            "reason": str(e)[:100]
-        })
+            # Non-rate-limit error or final attempt — fall through to direct tool
+            print(f"\n[Fallback] CrewAI failed ({type(e).__name__}), using direct tool...\n")
 
-    return state
+            result = ToolRegistry.execute(state["route"], state["query"])
+            state["result"] = {
+                "answer": result.get("answer", str(result)) if isinstance(result, dict) else str(result),
+                "source": "fallback"
+            }
+
+            logger.log_node("fallback_execution", {"reason": error_str[:100]})
+            return state
+
+    return state  # safety
 
 
 def tool_node(state):
@@ -75,10 +84,7 @@ def tool_node(state):
     result = ToolRegistry.execute(tool, query)
     state["result"] = result
 
-    logger.log_node("tool_execution", {
-        "tool": tool
-    })
-
+    logger.log_node("tool_execution", {"tool": tool})
     return state
 
 
@@ -97,10 +103,7 @@ def format_node(state):
     response = build_response(
         answer=answer,
         route=state.get("route", "unknown"),
-        metadata={
-            **metadata,
-            "source": source
-        }
+        metadata={**metadata, "source": source}
     )
 
     logger.log_response(response)

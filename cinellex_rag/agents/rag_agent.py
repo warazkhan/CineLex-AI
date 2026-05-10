@@ -11,6 +11,17 @@ def format_answer(result):
 
     answer = result.get("answer", "")
 
+    # Strip set-style braces the LLM sometimes returns: { "item1", "item2" }
+    stripped = answer.strip()
+    if stripped.startswith("{") and stripped.endswith("}"):
+        stripped = stripped[1:-1]
+        lines = [
+            l.strip().strip('"').strip(",")
+            for l in stripped.split("\n") if l.strip()
+        ]
+        return "\n".join(f"{i+1}. {l}" for i, l in enumerate(lines) if l)
+
+    # Try valid JSON dict (e.g. {"title": {"rating": 9.3}})
     try:
         parsed = json.loads(answer)
         if isinstance(parsed, dict):
@@ -30,11 +41,9 @@ def format_answer(result):
 def is_valid_query(query: str) -> bool:
     q = query.lower().strip()
 
-    # too short — less than 4 characters
     if len(q) < 4:
         return False
 
-    # must contain at least one space or be a known movie keyword
     movie_keywords = [
         "movie", "film", "tell", "about", "top", "worst", "best",
         "list", "director", "actor", "plot", "story", "cast", "who",
