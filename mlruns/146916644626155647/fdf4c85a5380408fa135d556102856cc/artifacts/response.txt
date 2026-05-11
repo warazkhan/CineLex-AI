@@ -1,1 +1,0 @@
-{'answer': 'Title: The Iron Giant\nYear: 1999\nRating: 8.0\nOverview: A young boy befriends a giant robot from outer space that a paranoid government agent wants to destroy.', 'route': 'rag', 'metadata': {}}

@@ -1,1 +1,0 @@
-{'answer': 'Title: The Dark Knight\nYear: 2008.0\nRating: 9.0\nOverview: When the menace known as the Joker wreaks havoc and chaos on the people of Gotham, Batman must accept one of the greatest psychological and physical tests of his ability to fight injustice.', 'route': 'rag', 'metadata': {'title': 'The Dark Knight', 'source': 'fuzzy'}}
