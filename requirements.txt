@@ -41,4 +41,5 @@ streamlit
 python-dotenv
 pydantic
 requests
-tqdmpytest
+tqdm
+pytest
