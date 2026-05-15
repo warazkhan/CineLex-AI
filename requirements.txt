@@ -2,6 +2,7 @@
 pandas
 numpy
 scikit-learn
+
 # LangChain stack
 langchain
 langchain-community
@@ -10,25 +11,34 @@ langchain-text-splitters
 langchain-huggingface
 langchain-chroma
 langgraph
+
 # Vector DB
 chromadb
 faiss-cpu
-# Embeddings + LLM
+
+# Embeddings
 sentence-transformers
 transformers
-torch
 huggingface-hub
+
 # Groq
 groq
+
 # MLflow
 mlflow
+
 # CrewAI
 crewai
+
 # API
 fastapi
 uvicorn
+
+# UI
+streamlit
+
 # Utilities
 python-dotenv
 pydantic
 requests
-tqdm
+tqdmpytest
