@@ -43,3 +43,7 @@ pydantic
 requests
 tqdm
 pytest
+
+#SHAP for explainability
+shap>=0.44.0
+scikit-learn>=1.4.0
