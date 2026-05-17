@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
         - name: api
-          image: warazkhan/cinellex-ai:d9270292a4e294117e5e630b245af95cf3494c46
+          image: warazkhan/cinellex-ai:db435ac7bd12becf40286e192ccb3bff8af68162
           imagePullPolicy: Always               # ← was IfNotPresent; needed since you reuse :latest tag
           ports:
             - containerPort: 8000
