@@ -77,3 +77,6 @@ jobs:
         git add k8s/04-api-deployment.yaml k8s/06-streamlit-deployment.yaml
         git diff --staged --quiet || git commit -m "ci: bump image tag to ${{ github.sha }}"
         git push origin ${{ github.ref_name }}
+
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
