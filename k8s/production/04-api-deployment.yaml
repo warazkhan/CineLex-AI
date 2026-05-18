@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cinellex-api
-  namespace: cinellex
+  namespace: cinellex-production
   labels:
     app: cinellex-ai
     component: api

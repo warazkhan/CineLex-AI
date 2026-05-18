@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cinellex-streamlit
-  namespace: cinellex
+  namespace: cinellex-staging
   labels:
     app: cinellex-ai
     component: streamlit
@@ -88,7 +88,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: cinellex-streamlit-svc
-  namespace: cinellex
+  namespace: cinellex-staging
 spec:
   selector:                    # FIX: was completely missing
     app: cinellex-ai
