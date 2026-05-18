@@ -1,10 +1,6 @@
 import streamlit as st
 import requests
 import os
-import matplotlib
-matplotlib.use("Agg")   # non-interactive backend — required in Docker/K8s
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 
 # -----------------------------------------------
 # Config
@@ -18,9 +14,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# -----------------------------------------------
-# Styles — your exact design system, extended
-# -----------------------------------------------
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500&display=swap');
@@ -79,24 +72,6 @@ html, body, [class*="css"] {
 }
 .meta-pill span { color: #e8b86d; font-weight: 500; }
 
-.shap-card {
-    background: #101010;
-    border: 1px solid #1f1f1f;
-    border-radius: 8px;
-    padding: 1.2rem 1.4rem;
-    margin-top: 0.8rem;
-}
-.shap-title {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #555;
-    margin-bottom: 0.8rem;
-}
-.shap-agree   { color: #6fcf97; font-size: 0.78rem; }
-.shap-disagree{ color: #eb5757; font-size: 0.78rem; }
-.shap-conf    { color: #e8b86d; font-size: 0.78rem; }
-
 .stTextInput > div > div > input {
     background: #111 !important;
     border: 1px solid #2a2a2a !important;
@@ -151,15 +126,14 @@ html, body, [class*="css"] {
 # Session state
 # -----------------------------------------------
 for key, default in [
-    ("history",  []),
-    ("prefill",  ""),
-    ("feat_imp", None),
+    ("history", []),
+    ("prefill", ""),
 ]:
     if key not in st.session_state:
         st.session_state[key] = default
 
 # -----------------------------------------------
-# API helpers
+# API helper
 # -----------------------------------------------
 def call_api(q: str):
     try:
@@ -170,101 +144,9 @@ def call_api(q: str):
     except requests.exceptions.ConnectionError:
         return None, f"Cannot reach API at `{API_URL}`. Is the server running?"
     except requests.exceptions.Timeout:
-        return None, "Request timed out (>60s). Try again."
+        return None, "Request timed out (>120s). Try again."
     except Exception as e:
         return None, str(e)
-
-
-def call_feature_importance():
-    """
-    Calls a dedicated endpoint — add /explain/features to app.py (below).
-    Falls back gracefully if not available.
-    """
-    try:
-        r = requests.get(f"{API_URL}/explain/features", timeout=30)
-        if r.status_code == 200:
-            return r.json(), None
-        return None, f"Endpoint error {r.status_code}"
-    except Exception as e:
-        return None, str(e)
-
-# -----------------------------------------------
-# SHAP chart — matches dark theme exactly
-# -----------------------------------------------
-def render_shap_chart(shap_explanation: dict):
-    if not shap_explanation or not shap_explanation.get("top_features"):
-        return
-
-    features = shap_explanation["top_features"]
-    words    = [f["word"] for f in features]
-    values   = [f["shap_value"] for f in features]
-
-    # Gold for analytics push, muted blue for RAG push
-    colors = ["#e8b86d" if v > 0 else "#5b8db8" for v in values]
-
-    fig, ax = plt.subplots(figsize=(6, max(2.2, len(words) * 0.45)))
-    fig.patch.set_facecolor("#101010")
-    ax.set_facecolor("#101010")
-
-    ax.barh(words[::-1], values[::-1], color=colors[::-1],
-            height=0.55, edgecolor="none")
-    ax.axvline(0, color="#333", linewidth=1)
-
-    ax.tick_params(colors="#666", labelsize=9)
-    ax.set_xlabel("SHAP value", color="#555", fontsize=8)
-    for spine in ax.spines.values():
-        spine.set_edgecolor("#1f1f1f")
-
-    gold_p  = mpatches.Patch(color="#e8b86d", label="→ analytics")
-    blue_p  = mpatches.Patch(color="#5b8db8", label="→ rag")
-    ax.legend(
-        handles=[gold_p, blue_p],
-        fontsize=7,
-        facecolor="#141414",
-        edgecolor="#222",
-        labelcolor="#888",
-        loc="lower right"
-    )
-
-    plt.tight_layout(pad=0.6)
-    st.pyplot(fig)
-    plt.close(fig)
-
-
-def render_feature_importance_chart(data: dict):
-    if not data or "feature_importance" in data.get("error", ""):
-        st.markdown(
-            f'<p style="color:#555;font-size:0.85rem">{data.get("error","No data")}</p>',
-            unsafe_allow_html=True
-        )
-        return
-
-    items    = data.get("feature_importance", [])
-    features = [i["feature"] for i in items]
-    vals     = [i["mean_abs_shap"] for i in items]
-
-    fig, ax = plt.subplots(figsize=(6, 2.5))
-    fig.patch.set_facecolor("#101010")
-    ax.set_facecolor("#101010")
-
-    bars = ax.bar(features, vals, color="#e8b86d", edgecolor="none", width=0.5)
-    ax.tick_params(colors="#666", labelsize=9)
-    ax.set_ylabel("mean |SHAP|", color="#555", fontsize=8)
-    ax.set_title("What drives IMDB rating?", color="#888",
-                 fontsize=9, pad=8)
-    for spine in ax.spines.values():
-        spine.set_edgecolor("#1f1f1f")
-
-    plt.tight_layout(pad=0.6)
-    st.pyplot(fig)
-    plt.close(fig)
-
-    if data.get("summary"):
-        st.markdown(
-            f'<p style="color:#666;font-size:0.8rem;margin-top:0.4rem">'
-            f'{data["summary"]}</p>',
-            unsafe_allow_html=True
-        )
 
 # -----------------------------------------------
 # Sidebar
@@ -277,14 +159,9 @@ with st.sidebar:
         unsafe_allow_html=True
     )
 
-    # Session stats
     total_q   = len(st.session_state.history)
     analytics = sum(1 for h in st.session_state.history if h["route"] == "analytics")
     rag_count = total_q - analytics
-    agrees    = sum(
-        1 for h in st.session_state.history
-        if h.get("shap", {}).get("agrees", True)
-    )
 
     st.markdown(
         f'<div class="sidebar-stat">Queries this session'
@@ -296,32 +173,6 @@ with st.sidebar:
         f'<div class="val">{analytics} / {rag_count}</div></div>',
         unsafe_allow_html=True
     )
-    if total_q:
-        st.markdown(
-            f'<div class="sidebar-stat">SHAP agrees with router'
-            f'<div class="val">{agrees}/{total_q}</div></div>',
-            unsafe_allow_html=True
-        )
-
-    st.markdown('<hr class="divider">', unsafe_allow_html=True)
-
-    # Feature importance section
-    st.markdown(
-        '<div style="font-size:0.75rem;text-transform:uppercase;'
-        'letter-spacing:0.08em;color:#555;margin-bottom:0.6rem">'
-        'IMDB Feature Importance</div>',
-        unsafe_allow_html=True
-    )
-    if st.button("Run SHAP on IMDB data", key="feat_btn"):
-        with st.spinner("Training model…"):
-            feat_data, feat_err = call_feature_importance()
-            if feat_err:
-                st.error(feat_err)
-            else:
-                st.session_state.feat_imp = feat_data
-
-    if st.session_state.feat_imp:
-        render_feature_importance_chart(st.session_state.feat_imp)
 
     st.markdown('<hr class="divider">', unsafe_allow_html=True)
     st.markdown(
@@ -332,7 +183,7 @@ with st.sidebar:
     )
 
 # -----------------------------------------------
-# Main — Hero
+# Hero
 # -----------------------------------------------
 st.markdown("""
 <div class="hero-title">Cine<span class="accent">Lex</span></div>
@@ -391,68 +242,32 @@ if search_clicked and query.strip():
         answer = data.get("answer", "").strip()
         route  = data.get("route",  "unknown")
         source = data.get("source", "unknown")
-        shap   = data.get("shap_explanation") or {}
 
         st.session_state.history.insert(0, {
             "query":  query.strip(),
             "answer": answer,
             "route":  route,
             "source": source,
-            "shap":   shap,
         })
 
 # -----------------------------------------------
-# Results — latest answer + SHAP
+# Results
 # -----------------------------------------------
 if st.session_state.history:
-    latest      = st.session_state.history[0]
-    route_icon  = "📊" if latest["route"] == "analytics" else "🎬"
-    shap        = latest.get("shap", {})
+    latest     = st.session_state.history[0]
+    route_icon = "📊" if latest["route"] == "analytics" else "🎬"
 
-    # Two columns: answer left, SHAP right
-    col_ans, col_shap = st.columns([3, 2])
-
-    with col_ans:
-        st.markdown(
-            f'<div class="answer-card">{latest["answer"]}</div>'
-            f'<div class="answer-meta">'
-            f'  <div class="meta-pill">mode <span>{route_icon} {latest["route"]}</span></div>'
-            f'  <div class="meta-pill">source <span>{latest["source"]}</span></div>'
-            f'</div>',
-            unsafe_allow_html=True
-        )
-
-    with col_shap:
-        if shap and shap.get("top_features"):
-            agree_label = (
-                '<span class="shap-agree">✓ agrees with router</span>'
-                if shap.get("agrees")
-                else '<span class="shap-disagree">⚠ disagrees with router</span>'
-            )
-            st.markdown(
-                f'<div class="shap-card">'
-                f'<div class="shap-title">Why this route?</div>'
-                f'<span class="shap-conf">ML confidence: '
-                f'{shap.get("confidence", 0):.0%}</span>'
-                f' &nbsp;·&nbsp; {agree_label}'
-                f'<br><span style="font-size:0.72rem;color:#444">'
-                f'trained on {shap.get("train_size", 0)} queries</span>'
-                f'</div>',
-                unsafe_allow_html=True
-            )
-            render_shap_chart(shap)
-        else:
-            st.markdown(
-                '<div class="shap-card">'
-                '<div class="shap-title">Why this route?</div>'
-                '<span style="color:#333;font-size:0.82rem">'
-                'SHAP explanation available after a few more queries.</span>'
-                '</div>',
-                unsafe_allow_html=True
-            )
+    st.markdown(
+        f'<div class="answer-card">{latest["answer"]}</div>'
+        f'<div class="answer-meta">'
+        f'  <div class="meta-pill">mode <span>{route_icon} {latest["route"]}</span></div>'
+        f'  <div class="meta-pill">source <span>{latest["source"]}</span></div>'
+        f'</div>',
+        unsafe_allow_html=True
+    )
 
     # -----------------------------------------------
-    # Query history (full, with answers)
+    # History
     # -----------------------------------------------
     if len(st.session_state.history) > 1:
         st.markdown('<hr class="divider">', unsafe_allow_html=True)
