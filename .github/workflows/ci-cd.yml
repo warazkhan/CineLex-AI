@@ -55,7 +55,7 @@ jobs:
     name: Update K8s Image Tag
     runs-on: ubuntu-latest
     needs: build-and-push
-    if: github.event_name != 'pull_request'
+    if: "github.event_name != 'pull_request' && !startsWith(github.event.head_commit.message, 'ci:')"
 
     steps:
     - name: Checkout code
