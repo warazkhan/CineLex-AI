@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: cinellex-config
-  namespace: cinellex
-data:
-  MLFLOW_TRACKING_URI: "file:///app/mlruns"
-  API_URL: "http://cinellex-api-svc.cinellex.svc.cluster.local:8000"

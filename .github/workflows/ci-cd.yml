@@ -3,81 +3,132 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [main, dev]
+    paths-ignore:
+      - 'k8s/**'
+      - '**.md'
+      - '.gitignore'
   pull_request:
     branches: [main]
 
 jobs:
-  build-and-push:
+  # ──────────────────────────────────────────────
+  # JOB 1 — Test
+  # ──────────────────────────────────────────────
+  test:
+    name: Run Tests
     runs-on: ubuntu-latest
-    if: "!startsWith(github.event.head_commit.message, 'ci:')"
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
-    - name: Install dependencies
-      run: pip install -r requirements.txt
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
-    - name: Run tests
-      run: pytest cinellex_rag/tests/ -v
-      env:
-        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      - name: Run tests
+        run: pytest cinellex_rag/tests/ -v
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+  # ──────────────────────────────────────────────
+  # JOB 2 — Build & Push
+  # Skipped entirely on PRs
+  # ──────────────────────────────────────────────
+  build-and-push:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name != 'pull_request'
 
-    - name: Login to Docker Hub
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
+    outputs:
+      image-tag: ${{ github.sha }}
 
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v6
-      with:
-        context: .
-        push: ${{ github.event_name != 'pull_request' }}
-        tags: |
-          warazkhan/cinellex-ai:latest
-          warazkhan/cinellex-ai:${{ github.sha }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push (staging tag)
+        if: github.ref == 'refs/heads/dev'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            warazkhan/cinellex-ai:${{ github.sha }}
+            warazkhan/cinellex-ai:staging
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push (production tag)
+        if: github.ref == 'refs/heads/main'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            warazkhan/cinellex-ai:${{ github.sha }}
+            warazkhan/cinellex-ai:stable
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
-  update-manifest:
-    name: Update K8s Image Tag
+  # ──────────────────────────────────────────────
+  # JOB 3 — Update gitops branch (never touches dev/main)
+  # This is what kills the loop permanently
+  # ──────────────────────────────────────────────
+  update-manifests:
+    name: Update K8s Manifests → gitops branch
     runs-on: ubuntu-latest
     needs: build-and-push
-    if: "github.event_name != 'pull_request' && !startsWith(github.event.head_commit.message, 'ci:')"
+    if: github.event_name != 'pull_request'
+
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GH_PAT }}
-        ref: ${{ github.ref_name }}
+      - name: Checkout gitops branch
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }}
+          ref: gitops                      # ← always writes here, never dev/main
 
-    - name: Update image tag in k8s manifests
-      run: |
-        NEW_TAG="${{ github.sha }}"
-        IMAGE="warazkhan/cinellex-ai"
-        sed -i "s|image: ${IMAGE}:.*|image: ${IMAGE}:${NEW_TAG}|g" k8s/04-api-deployment.yaml
-        sed -i "s|image: ${IMAGE}:.*|image: ${IMAGE}:${NEW_TAG}|g" k8s/06-streamlit-deployment.yaml
+      - name: Update image tag in manifests
+        run: |
+          NEW_TAG="${{ github.sha }}"
+          IMAGE="warazkhan/cinellex-ai"
 
-    - name: Commit and push updated manifests
-      run: |
-        git config user.name  "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-        git add k8s/04-api-deployment.yaml k8s/06-streamlit-deployment.yaml
-        git diff --staged --quiet || git commit -m "ci: bump image tag to ${{ github.sha }}"
-        git push origin ${{ github.ref_name }}
+          if [ "${{ github.ref }}" = "refs/heads/dev" ]; then
+            # staging manifests
+            sed -i "s|image: ${IMAGE}:.*|image: ${IMAGE}:${NEW_TAG}|g" k8s/staging/04-api-deployment.yaml
+            sed -i "s|image: ${IMAGE}:.*|image: ${IMAGE}:${NEW_TAG}|g" k8s/staging/06-streamlit-deployment.yaml
+          else
+            # production manifests
+            sed -i "s|image: ${IMAGE}:.*|image: ${IMAGE}:${NEW_TAG}|g" k8s/production/04-api-deployment.yaml
+            sed -i "s|image: ${IMAGE}:.*|image: ${IMAGE}:${NEW_TAG}|g" k8s/production/06-streamlit-deployment.yaml
+          fi
+
+      - name: Commit and push to gitops branch
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add k8s/
+          git diff --staged --quiet || git commit -m "deploy: ${{ github.ref_name }} → ${{ github.sha }}"
+          git push origin gitops
 
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
