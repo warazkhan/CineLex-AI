@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: seed-chroma
+  namespace: cinellex-production
+spec:
+  restartPolicy: Never
+  volumes:
+    - name: chroma-vol
+      persistentVolumeClaim:
+        claimName: cinellex-chroma-pvc
+  containers:
+    - name: seed
+      image: warazkhan/cinellex-ai:latest
+      imagePullPolicy: IfNotPresent
+      command: ["sleep", "3600"]
+      volumeMounts:
+        - name: chroma-vol
+          mountPath: /data

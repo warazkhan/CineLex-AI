@@ -20,7 +20,7 @@ spec:
     spec:
       initContainers:
         - name: wait-for-api
-          image: warazkhan/cinellex-ai:4ada19adcb9b19708f1702fbc9cf90751ba650c6
+          image: warazkhan/cinellex-ai:latest
           imagePullPolicy: IfNotPresent
           command:
             - sh
@@ -32,7 +32,7 @@ spec:
               done
       containers:
         - name: streamlit
-          image: warazkhan/cinellex-ai:4ada19adcb9b19708f1702fbc9cf90751ba650c6
+          image: warazkhan/cinellex-ai:latest
           imagePullPolicy: IfNotPresent
           command:
             - streamlit
