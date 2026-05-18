@@ -25,3 +25,6 @@ rag-imdb-knowledge-agent/retrieval/
 # Logs & temp
 *.log
 tmp/
+
+mlruns/
+cinellex_rag/retrieval/chroma_store/
