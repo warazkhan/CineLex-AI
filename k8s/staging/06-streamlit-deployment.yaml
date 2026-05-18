@@ -21,19 +21,19 @@ spec:
       initContainers:
         - name: wait-for-api
           image: warazkhan/cinellex-ai:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           command:
             - sh
             - -c
             - |
-              until curl -sf http://cinellex-api-svc.cinellex.svc.cluster.local:8000/health; do
+              until curl -sf http://cinellex-api-svc.cinellex-staging.svc.cluster.local:8000/health; do
                 echo "API not ready, retrying in 5s..."
                 sleep 5
               done
       containers:
         - name: streamlit
           image: warazkhan/cinellex-ai:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           command:
             - streamlit
             - run
