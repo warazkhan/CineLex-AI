@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cinellex-streamlit
+  namespace: cinellex
+  labels:
+    app: cinellex-ai
+    component: streamlit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cinellex-ai
+      component: streamlit
+  template:
+    metadata:
+      labels:
+        app: cinellex-ai
+        component: streamlit
+    spec:
+      initContainers:
+        - name: wait-for-api
+          image: warazkhan/cinellex-ai:4ada19adcb9b19708f1702fbc9cf90751ba650c6
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              until curl -sf http://cinellex-api-svc.cinellex.svc.cluster.local:8000/health; do
+                echo "API not ready, retrying in 5s..."
+                sleep 5
+              done
+      containers:
+        - name: streamlit
+          image: warazkhan/cinellex-ai:4ada19adcb9b19708f1702fbc9cf90751ba650c6
+          imagePullPolicy: IfNotPresent
+          command:
+            - streamlit
+            - run
+            - streamlit_app.py
+            - --server.port=8501
+            - --server.address=0.0.0.0
+          ports:
+            - containerPort: 8501
+          envFrom:
+            - configMapRef:
+                name: cinellex-config
+          env:
+            - name: GROQ_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: cinellex-secrets
+                  key: GROQ_API_KEY
+          volumeMounts:
+            - name: data-volume
+              mountPath: /app/data
+            - name: chroma-volume
+              mountPath: /app/cinellex_rag/retrieval/chroma_store
+          livenessProbe:
+            httpGet:
+              path: /_stcore/health
+              port: 8501
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /_stcore/health
+              port: 8501
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+      volumes:
+        - name: data-volume
+          persistentVolumeClaim:
+            claimName: cinellex-data-pvc
+        - name: chroma-volume
+          persistentVolumeClaim:
+            claimName: cinellex-chroma-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cinellex-streamlit-svc
+  namespace: cinellex
+spec:
+  selector:                    # FIX: was completely missing
+    app: cinellex-ai
+    component: streamlit
+  ports:
+    - port: 8501
+      targetPort: 8501
+      nodePort: 30501
+  type: NodePort
