@@ -1,134 +1,199 @@
-"""Structured movie "cards" for the API / UI.
+"""Structured movie "cards" for the API / UI, built from live TMDB data.
 
-A *card* is a small JSON-serialisable dict that the front-end renders as a
-poster tile. Every answer path (analytics, RAG fuzzy/retrieval, recommend)
-emits the same shape, so the UI needs only one renderer.
+A *card* is a small JSON-serialisable dict the front-end renders as a poster
+tile. Every answer path (analytics, RAG, recommend) emits the same shape, so the
+UI needs only one renderer.
 
-The IMDB Top 1000 dataset ships a real ``Poster_Link`` column, so cards carry
-poster URLs with no external API or key.
+This module maps raw TMDB dicts (from :mod:`cinellex_rag.core.tmdb`) into that
+shape. It depends on ``tmdb`` one-way; ``tmdb`` knows nothing about cards.
 """
-import math
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Optional
 
-from cinellex_rag.core.data_loader import load_imdb
-from config.schema_config import (
-    COL_TITLE,
-    COL_YEAR,
-    COL_RATING,
-    COL_OVERVIEW,
-    COL_GENRE,
-    COL_DIRECTOR,
-    COL_STAR1,
-    COL_STAR2,
-    COL_STAR3,
-    COL_STAR4,
-    COL_GROSS,
-    COL_VOTES,
+from cinellex_rag.core import tmdb
+from config.tmdb_config import (
+    TMDB_ENABLED,
+    TMDB_IMAGE_BASE,
+    TMDB_MAX_WORKERS,
+    TMDB_POSTER_SIZE,
 )
-
-# Columns not (yet) in schema_config but present in the dataset.
-COL_POSTER = "Poster_Link"
-COL_RUNTIME = "Runtime"
-COL_CERT = "Certificate"
 
 KIND_MOVIE = "movie"
 KIND_DIRECTOR = "director"
 
 
-def _clean(value: Any) -> Optional[Any]:
-    """Normalise pandas/sqlite NaN and empty strings to None."""
-    if value is None:
-        return None
-    if isinstance(value, float) and math.isnan(value):
-        return None
-    if isinstance(value, str) and not value.strip():
-        return None
-    return value
+# --------------------------------------------------------------------------- #
+# Field helpers
+# --------------------------------------------------------------------------- #
+def _poster_url(path: Optional[str]) -> Optional[str]:
+    return f"{TMDB_IMAGE_BASE}/{TMDB_POSTER_SIZE}{path}" if path else None
 
 
-def _to_int(value: Any) -> Optional[int]:
-    value = _clean(value)
+def _year(release_date: Optional[str]) -> Optional[int]:
+    if release_date and len(release_date) >= 4 and release_date[:4].isdigit():
+        return int(release_date[:4])
+    return None
+
+
+def _rating(vote_average: Any) -> Optional[float]:
     try:
-        return int(float(value))
+        v = round(float(vote_average), 1)
+        return v if v > 0 else None
     except (TypeError, ValueError):
         return None
 
 
-def _to_float(value: Any) -> Optional[float]:
-    value = _clean(value)
+def _runtime(minutes: Any) -> Optional[str]:
     try:
-        return float(value)
+        m = int(minutes)
+        return f"{m} min" if m > 0 else None
     except (TypeError, ValueError):
         return None
 
 
-def _parse_gross(value: Any) -> Optional[int]:
-    value = _clean(value)
-    if value is None:
-        return None
-    if isinstance(value, (int, float)):
-        return int(value)
-    digits = str(value).replace(",", "").replace("$", "").strip()
+def _gross(revenue: Any) -> Optional[int]:
     try:
-        return int(float(digits))
-    except ValueError:
+        r = int(revenue)
+        return r if r > 0 else None
+    except (TypeError, ValueError):
         return None
 
 
-def build_card(row: Any, subtitle: Optional[str] = None) -> dict:
-    """Build a movie card from a dict-like row.
+def _director(credits: dict) -> Optional[str]:
+    for member in (credits or {}).get("crew", []):
+        if member.get("job") == "Director":
+            return member.get("name")
+    return None
 
-    ``row`` may be a pandas Series or a plain dict (sqlite rows should be
-    converted with ``dict(row)`` first). Missing fields become ``None``.
-    """
-    get = row.get  # both pandas.Series and dict support .get
 
-    stars = [_clean(get(c)) for c in (COL_STAR1, COL_STAR2, COL_STAR3, COL_STAR4)]
-    stars = [s for s in stars if s]
+def _stars(credits: dict, n: int = 4) -> list:
+    cast = (credits or {}).get("cast", []) or []
+    return [c.get("name") for c in cast[:n] if c.get("name")]
 
+
+def _genres_from_list(genres: list) -> Optional[str]:
+    names = [g.get("name") for g in (genres or []) if g.get("name")]
+    return ", ".join(names) or None
+
+
+def _genres_from_ids(genre_ids: list) -> Optional[str]:
+    gmap = tmdb.genre_map()
+    names = [gmap.get(gid) for gid in (genre_ids or []) if gmap.get(gid)]
+    return ", ".join(names) or None
+
+
+def _certificate(release_dates: dict, prefer: str = "US") -> Optional[str]:
+    """Pull a content rating from the (US by default) release-dates block."""
+    results = (release_dates or {}).get("results", []) or []
+    by_country = {r.get("iso_3166_1"): r for r in results}
+    entry = by_country.get(prefer) or (results[0] if results else None)
+    for rel in (entry or {}).get("release_dates", []) or []:
+        cert = (rel.get("certification") or "").strip()
+        if cert:
+            return cert
+    return None
+
+
+# --------------------------------------------------------------------------- #
+# Card builders
+# --------------------------------------------------------------------------- #
+def card_from_details(d: dict, subtitle: Optional[str] = None) -> dict:
+    """Build a full card from a ``/movie/{id}`` details payload (with
+    ``credits``, ``videos`` and ``release_dates`` appended)."""
+    credits = d.get("credits", {})
     return {
         "kind": KIND_MOVIE,
-        "title": _clean(get(COL_TITLE)),
-        "year": _to_int(get(COL_YEAR)),
-        "rating": _to_float(get(COL_RATING)),
-        "genre": _clean(get(COL_GENRE)),
-        "director": _clean(get(COL_DIRECTOR)),
-        "overview": _clean(get(COL_OVERVIEW)),
-        "poster": _clean(get(COL_POSTER)),
-        "runtime": _clean(get(COL_RUNTIME)),
-        "certificate": _clean(get(COL_CERT)),
-        "gross": _parse_gross(get(COL_GROSS)),
-        "votes": _to_int(get(COL_VOTES)),
-        "stars": stars,
+        "title": d.get("title") or d.get("original_title"),
+        "year": _year(d.get("release_date")),
+        "rating": _rating(d.get("vote_average")),
+        "genre": _genres_from_list(d.get("genres")),
+        "director": _director(credits),
+        "overview": d.get("overview") or None,
+        "poster": _poster_url(d.get("poster_path")),
+        "runtime": _runtime(d.get("runtime")),
+        "certificate": _certificate(d.get("release_dates")),
+        "gross": _gross(d.get("revenue")),
+        "votes": d.get("vote_count") or None,
+        "stars": _stars(credits),
+        "tmdb_id": d.get("id"),
+        "imdb_id": d.get("imdb_id") or None,
+        "popularity": d.get("popularity"),
+        "trailer": tmdb.pick_trailer(d.get("videos")),
         "subtitle": subtitle,
     }
 
 
-def director_card(name: str, count: int, top_movie: Optional[dict] = None) -> dict:
-    """Build a card representing a director (name + film count + a representative
-    poster taken from their highest-rated film)."""
-    card = build_card(top_movie) if top_movie else {}
-    best = card.get("title")
+def card_from_search(r: dict, subtitle: Optional[str] = None) -> dict:
+    """Lighter card from a search/discover result (no per-movie details call).
+
+    Director, cast, runtime, gross and trailer are unavailable here; use
+    :func:`card_from_details` / :func:`cards_for_ids` when those matter.
+    """
+    return {
+        "kind": KIND_MOVIE,
+        "title": r.get("title") or r.get("original_title"),
+        "year": _year(r.get("release_date")),
+        "rating": _rating(r.get("vote_average")),
+        "genre": _genres_from_ids(r.get("genre_ids")),
+        "director": None,
+        "overview": r.get("overview") or None,
+        "poster": _poster_url(r.get("poster_path")),
+        "runtime": None,
+        "certificate": None,
+        "gross": None,
+        "votes": r.get("vote_count") or None,
+        "stars": [],
+        "tmdb_id": r.get("id"),
+        "imdb_id": None,
+        "popularity": r.get("popularity"),
+        "trailer": None,
+        "subtitle": subtitle,
+    }
+
+
+def cards_for_ids(ids: list) -> list:
+    """Fetch full details for several movie ids concurrently → full cards.
+
+    Order is preserved; ids that fail to resolve are dropped.
+    """
+    ids = [i for i in ids if i]
+    if not ids:
+        return []
+    workers = min(TMDB_MAX_WORKERS, len(ids))
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        details = list(pool.map(tmdb.movie_details, ids))
+    return [card_from_details(d) for d in details if d]
+
+
+def card_from_title(title: str, year=None, subtitle: Optional[str] = None) -> Optional[dict]:
+    """Resolve a title to a full card via live TMDB search + details."""
+    if not TMDB_ENABLED or not title:
+        return None
+    hit = tmdb.search_movie(title, year=year)
+    if not hit:
+        return None
+    details = tmdb.movie_details(hit.get("id"))
+    if not details:
+        return card_from_search(hit, subtitle=subtitle)
+    card = card_from_details(details, subtitle=subtitle)
+    return card
+
+
+def director_card(name: str, count: int, top_card: Optional[dict] = None) -> dict:
+    """Card representing a director (name + film count + a representative poster
+    taken from one of their films, passed in as an already-built movie card)."""
+    top_card = top_card or {}
+    best = top_card.get("title")
+    rating = top_card.get("rating")
     return {
         "kind": KIND_DIRECTOR,
         "title": name,
-        "subtitle": f"{count} {'film' if count == 1 else 'films'} in the Top 1000",
-        "poster": card.get("poster"),
-        "overview": f"Top-rated: {best} (★ {card.get('rating')})" if best else None,
+        "subtitle": f"{count} {'film' if count == 1 else 'films'} in TMDB's top-rated",
+        "poster": top_card.get("poster"),
+        "overview": f"Top-rated: {best} (★ {rating})" if best else None,
         "rating": None,
         "year": None,
         "genre": None,
         "director": None,
         "stars": [],
     }
-
-
-def card_from_title(title: str, subtitle: Optional[str] = None) -> Optional[dict]:
-    """Look up a movie by case-insensitive exact title and build its card."""
-    if not title:
-        return None
-    df = load_imdb()
-    matches = df[df[COL_TITLE].str.lower() == str(title).strip().lower()]
-    if matches.empty:
-        return None
-    return build_card(matches.iloc[0], subtitle=subtitle)

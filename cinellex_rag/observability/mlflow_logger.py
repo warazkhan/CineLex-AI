@@ -1,7 +1,21 @@
-import mlflow
+"""MLflow run logger.
+
+On free-tier Render the default local ``./mlruns`` store is wiped on every
+spin-down (and there is no MLflow UI server to read it), so logging there is
+pure overhead. We therefore only log when an explicit ``MLFLOW_TRACKING_URI`` is
+configured — a remote/managed tracking server, or a local one in dev. When it is
+unset every method is a no-op and ``mlflow`` is never imported, so the
+(skinny) dependency adds no startup cost or memory in production.
+"""
+import os
 import time
 
-mlflow.set_experiment("cinellex-ai")
+_ENABLED = bool(os.environ.get("MLFLOW_TRACKING_URI"))
+
+if _ENABLED:
+    import mlflow
+
+    mlflow.set_experiment(os.environ.get("MLFLOW_EXPERIMENT", "cinellex-ai"))
 
 
 class MLflowLogger:
@@ -30,6 +44,9 @@ class MLflowLogger:
             self._source = response.get("metadata", {}).get("source", "unknown")
 
     def end_run(self):
+        if not _ENABLED:
+            return
+
         with mlflow.start_run():
             # params
             mlflow.log_param("query", self._query or "")
@@ -37,7 +54,7 @@ class MLflowLogger:
             mlflow.log_param("source", self._source or "unknown")
 
             # metrics — now visible in Metrics tab
-            latency = round((time.time() - self._start_time) * 1000)
+            latency = round((time.time() - (self._start_time or time.time())) * 1000)
             mlflow.log_metric("latency_ms", latency)
 
 

@@ -35,7 +35,7 @@ class MovieRecommenderTool(BaseTool):
     name: str = "movie_recommender_tool"
     description: str = (
         "Given a seed movie title, returns real similar movies "
-        "(title, rating, director) from the IMDB database. "
+        "(title, rating, director) from TMDB. "
         "Always use this to obtain factual candidate movies — never invent titles."
     )
     args_schema: type[BaseModel] = RecommenderToolInput
@@ -73,7 +73,7 @@ taste_analyst = Agent(
 
 data_analyst = Agent(
     role="Movie Data Analyst",
-    goal="Fetch factual similar-movie candidates from the IMDB database",
+    goal="Fetch factual similar-movie candidates from TMDB",
     backstory=(
         "You use the movie_recommender_tool to pull real candidate movies for a "
         "seed title. You report exactly what the tool returns and never invent titles."

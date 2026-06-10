@@ -13,8 +13,9 @@ services:
     env_file:
       - .env
     volumes:
+      # Persist the regenerable TMDB response cache (data/tmdb_cache.json) across
+      # restarts. There is no SQLite/Chroma store to mount anymore.
       - ./data:/app/data
-      - ./cinellex_rag/retrieval/chroma_store:/app/cinellex_rag/retrieval/chroma_store
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -28,9 +29,9 @@ services:
       dockerfile: Dockerfile
     image: warazkhan/cinellex-ai:latest
     container_name: cinellex-streamlit
-    command: streamlit run streamlit_app.py --server.port 8501 --server.address 0.0.0.0
+    command: streamlit run streamlit_app.py --server.port ${PORT:-8501} --server.address 0.0.0.0
     ports:
-      - "8501:8501"
+      - "${PORT:-8501}:${PORT:-8501}"
     env_file:
       - .env
     environment:

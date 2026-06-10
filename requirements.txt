@@ -1,38 +1,26 @@
-# Core data
-pandas
-numpy
-scikit-learn
+# CineLex AI — runtime dependencies (single source of truth; pyproject.toml and
+# the Dockerfile both install this file).
+#
+# The app is now fully live on TMDB: there is no local dataset, SQLite DB, Chroma
+# vector store or embeddings, so pandas/numpy/scikit-learn, the langchain/chroma
+# stack and sentence-transformers/torch are gone. RAGAS evaluation extras are
+# opt-in and live in requirements-eval.txt.
 
-# LangChain stack
-langchain
-langchain-community
-langchain-core
-langchain-text-splitters
-langchain-huggingface
-langchain-chroma
+# TMDB data client
+requests
+
+# LLM (Groq, free tier)
+groq
+
+# Orchestration
 langgraph
 
-# Vector DB
-chromadb
-
-# Embeddings
-sentence-transformers
-transformers
-huggingface-hub
-
-# Groq
-groq
-langchain-groq
-
-# MLflow
-mlflow
-
-# CrewAI
-crewai
-
-# RAG evaluation
-ragas
-datasets
+# Agentic recommendation crew.
+# Pinned: newer crewai releases make litellm an optional extra and route Groq
+# (a non-native provider) through it, so an unpinned install drops litellm and
+# breaks `groq/*` model init at import time. 0.193.2 hard-depends on
+# litellm==1.74.9, keeping the Groq path working in CI and production.
+crewai==0.193.2
 
 # API
 fastapi
@@ -41,9 +29,19 @@ uvicorn
 # UI
 streamlit
 
+# Observability
+# mlflow-skinny is the tracking client only (set_experiment / start_run /
+# log_param / log_metric — all this app uses). It omits the heavy server stack
+# (flask, gunicorn, scipy, pyarrow, gitpython, ...) that full `mlflow` pulls in,
+# which is the largest avoidable contributor to image size. The logger no-ops
+# unless MLFLOW_TRACKING_URI is set (see observability/mlflow_logger.py), so on
+# free-tier Render — where the local ./mlruns store is wiped on every spin-down
+# — mlflow is never even imported.
+mlflow-skinny
+
 # Utilities
 python-dotenv
 pydantic
-requests
-tqdm
-pytest
+
+# NOTE: test-only deps (pytest) live in requirements-dev.txt so they don't ship
+# in the production image. CI installs requirements-dev.txt before running tests.

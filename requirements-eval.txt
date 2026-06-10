@@ -1,0 +1,17 @@
+# CineLex AI — evaluation-only extras (RAGAS harness).
+#
+# The app and its Docker image do NOT need these. Install them only to run the
+# offline RAG evaluation locally:
+#
+#     pip install -r requirements-eval.txt
+#     python evaluation/run_ragas.py
+#
+# These are kept out of requirements.txt on purpose: sentence-transformers pulls
+# torch, which is the single biggest contributor to image size.
+-r requirements.txt
+
+ragas
+datasets
+langchain-groq          # RAGAS judge (Groq) wrapper
+langchain-huggingface   # HuggingFace embeddings used by RAGAS metrics
+sentence-transformers   # backs all-MiniLM-L6-v2 (pulls torch CPU transitively)

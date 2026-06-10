@@ -352,6 +352,29 @@ section[data-testid="stSidebar"] .block-container { padding: 1.8rem 1.4rem !impo
     font-family: 'Outfit', sans-serif;
 }
 
+/* ── TRAILER LINK (from TMDB enrichment) ── */
+.trailer-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.74rem;
+    font-weight: 500;
+    color: var(--gold) !important;
+    text-decoration: none;
+    border: 1px solid var(--border2);
+    border-radius: 7px;
+    padding: 2px 9px;
+    background: var(--surface2);
+    transition: all 0.15s ease;
+}
+.trailer-link:hover {
+    border-color: var(--gold) !important;
+    background: var(--gold-dim);
+    color: var(--gold-soft) !important;
+}
+.mc-trailer { margin-top: 7px; font-size: 0.7rem; padding: 1px 8px; }
+
 /* ── MOVIE GRID (lists & recommendations) ── */
 .movie-grid {
     display: grid;

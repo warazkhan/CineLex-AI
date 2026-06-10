@@ -35,8 +35,19 @@ def test_recommend_node_uses_crew(monkeypatch):
             return "FAKE RECOMMENDATIONS"
 
     monkeypatch.setattr("cinellex_rag.crew.crew.RecommendationCrew", FakeCrew)
+    # Keep the node fully offline: stub the recommender + the card lookup so no
+    # live TMDB call is made (recommend_node imports these lazily at call time).
+    monkeypatch.setattr(
+        "cinellex_rag.core.movie_recommender.recommend_movies",
+        lambda seed, top_n=6: [{"Series_Title": "Heat"}],
+    )
+    monkeypatch.setattr(
+        "cinellex_rag.core.movies.card_from_title",
+        lambda title, **kw: {"kind": "movie", "title": title},
+    )
 
     out = recommend_node({"query": "recommend movies like Inception"})
 
     assert out["result"]["answer"] == "FAKE RECOMMENDATIONS"
     assert out["result"]["source"] == "recommendation-crew"
+    assert out["result"]["movies"] == [{"kind": "movie", "title": "Heat"}]

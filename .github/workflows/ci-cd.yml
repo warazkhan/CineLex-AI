@@ -28,7 +28,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-dev.txt
 
       - name: Install package (editable) for test imports
         run: pip install -e . --no-deps
@@ -87,6 +87,25 @@ jobs:
             warazkhan/cinellex-ai:stable
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # ── Render auto-deploy: ping the deploy hooks after the image is pushed ──
+      - name: Trigger Render deploy (API)
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_API }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "RENDER_DEPLOY_HOOK_API not set — skipping"; exit 0
+          fi
+          curl -fsSL -X POST "$HOOK"
+
+      - name: Trigger Render deploy (UI)
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_UI }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "RENDER_DEPLOY_HOOK_UI not set — skipping"; exit 0
+          fi
+          curl -fsSL -X POST "$HOOK"
 
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
