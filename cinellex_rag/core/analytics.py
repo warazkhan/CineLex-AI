@@ -1,19 +1,24 @@
+"""Deterministic ranking queries, served live from TMDB ``/discover``.
+
+Replaces the old SQLite analytics. Each query maps to a TMDB ``sort_by`` and the
+top results are expanded into full cards (one details call each, cached). "Top
+directors" has no TMDB endpoint, so it is approximated by tallying directors
+across the current top-rated set — clearly labelled as such.
+"""
 import re
-import sqlite3
+from collections import Counter
 
-from config.data_config import SQLITE_DB_PATH
-from cinellex_rag.core.movies import build_card, director_card
+from cinellex_rag.core import tmdb
+from cinellex_rag.core.movies import cards_for_ids, director_card
+from config.tmdb_config import TMDB_ENABLED
 
-
-def get_conn():
-    conn = sqlite3.connect(str(SQLITE_DB_PATH))
-    conn.row_factory = sqlite3.Row  # rows behave like dicts
-    return conn
+# How many top-rated films to scan when approximating "top directors".
+_DIRECTOR_SCAN_PAGES = 2  # ~40 films
 
 
 def extract_n(query: str, default: int = 5) -> int:
-    """Extract number from query like 'top 10 movies'"""
-    match = re.search(r'\b(\d+)\b', query)
+    """Extract a number from a query like 'top 10 movies'."""
+    match = re.search(r"\b(\d+)\b", query)
     return int(match.group(1)) if match else default
 
 
@@ -28,81 +33,79 @@ def _result(answer: str, movies: list, kind: str = None) -> dict:
 
 
 def handle_analytics(query: str, top_n: int = None) -> dict:
-    """Deterministic SQLite analytics.
-
-    Returns a dict with both a text ``answer`` (backwards-compatible) and a
-    structured ``movies`` list the UI renders as poster cards.
-    """
+    """Live TMDB analytics. Returns a text ``answer`` plus structured ``movies``
+    cards the UI renders as posters."""
     q = query.lower()
     top_n = top_n or extract_n(q)
-    conn = get_conn()
 
-    try:
-        if ("top" in q and "movie" in q) or ("best" in q and "movie" in q):
-            rows = conn.execute(
-                "SELECT * FROM movies ORDER BY IMDB_Rating DESC LIMIT ?", (top_n,)
-            ).fetchall()
-            return _result(_fmt_rated(rows), _cards(rows), kind="movie_list")
+    if not TMDB_ENABLED:
+        return _result("Live movie data is unavailable — TMDB is not configured.", [])
 
-        if "worst" in q and "movie" in q:
-            rows = conn.execute(
-                "SELECT * FROM movies ORDER BY IMDB_Rating ASC LIMIT ?", (top_n,)
-            ).fetchall()
-            return _result(_fmt_rated(rows), _cards(rows), kind="movie_list")
+    if "top" in q and "director" in q:
+        return _top_directors(top_n)
 
-        if "top" in q and "director" in q:
-            rows = conn.execute(
-                "SELECT Director, COUNT(*) AS movie_count FROM movies "
-                "GROUP BY Director ORDER BY movie_count DESC LIMIT ?", (top_n,)
-            ).fetchall()
-            text = "\n".join(f"{r['Director']} ({r['movie_count']} movies)" for r in rows)
-            return _result(text, _director_cards(conn, rows), kind="director_list")
+    if ("highest" in q and "gross" in q) or ("highest" in q and "earn" in q):
+        rows = tmdb.discover("revenue.desc", vote_count_gte=tmdb.VOTE_FLOOR)[:top_n]
+        cards = cards_for_ids([r["id"] for r in rows])
+        for c in cards:
+            if c.get("gross"):
+                c["subtitle"] = f"${c['gross']:,.0f} gross"
+        text = "\n".join(
+            f"{c['title']} ({c['year']}) — Gross: ${c['gross']:,.0f}"
+            for c in cards if c.get("gross")
+        )
+        return _result(text or "No gross figures available.", cards, kind="movie_list")
 
-        if "latest" in q or "recent" in q:
-            rows = conn.execute(
-                "SELECT * FROM movies ORDER BY Released_Year DESC LIMIT ?", (top_n,)
-            ).fetchall()
-            text = "\n".join(f"{r['Series_Title']} ({int(r['Released_Year'])})" for r in rows)
-            return _result(text, _cards(rows), kind="movie_list")
+    if "worst" in q and "movie" in q:
+        rows = tmdb.discover("vote_average.asc", vote_count_gte=tmdb.VOTE_FLOOR)[:top_n]
+        cards = cards_for_ids([r["id"] for r in rows])
+        return _result(_fmt_rated(cards), cards, kind="movie_list")
 
-        if ("highest" in q and "gross" in q) or ("highest" in q and "earn" in q):
-            rows = conn.execute(
-                "SELECT * FROM movies WHERE Gross IS NOT NULL AND Gross != '' "
-                "ORDER BY CAST(Gross AS REAL) DESC LIMIT ?", (top_n,)
-            ).fetchall()
-            text = "\n".join(
-                f"{r['Series_Title']} ({int(r['Released_Year'])}) — Gross: ${r['Gross']:,.0f}"
-                for r in rows
-            )
-            cards = [
-                build_card(dict(r), subtitle=f"${r['Gross']:,.0f} gross") for r in rows
-            ]
-            return _result(text, cards, kind="movie_list")
+    if "latest" in q or "recent" in q:
+        rows = tmdb.discover(
+            "primary_release_date.desc",
+            vote_count_gte=50,
+            release_lte=tmdb.TODAY,
+        )[:top_n]
+        cards = cards_for_ids([r["id"] for r in rows])
+        text = "\n".join(f"{c['title']} ({c['year']})" for c in cards)
+        return _result(text, cards, kind="movie_list")
 
-        return _result("No analytics pattern matched.", [])
+    if ("top" in q and "movie" in q) or ("best" in q and "movie" in q):
+        rows = tmdb.discover("vote_average.desc", vote_count_gte=tmdb.VOTE_FLOOR)[:top_n]
+        cards = cards_for_ids([r["id"] for r in rows])
+        return _result(_fmt_rated(cards), cards, kind="movie_list")
 
-    finally:
-        conn.close()
+    return _result("No analytics pattern matched.", [])
 
 
-def _fmt_rated(rows) -> str:
+def _fmt_rated(cards) -> str:
     return "\n".join(
-        f"{r['Series_Title']} ({int(r['Released_Year'])}) — Rating: {r['IMDB_Rating']}"
-        for r in rows
+        f"{c['title']} ({c['year']}) — Rating: {c['rating']}" for c in cards
     )
 
 
-def _cards(rows) -> list:
-    return [build_card(dict(r)) for r in rows]
+def _top_directors(top_n: int) -> dict:
+    """Approximate 'top directors' by tallying directors across TMDB's current
+    top-rated films. Bounded + cached, but not an authoritative leaderboard."""
+    rows = []
+    for page in range(1, _DIRECTOR_SCAN_PAGES + 1):
+        rows.extend(tmdb.discover("vote_average.desc", vote_count_gte=tmdb.VOTE_FLOOR, page=page))
 
+    cards = cards_for_ids([r["id"] for r in rows])
 
-def _director_cards(conn, rows) -> list:
-    """For each director, attach a representative poster from their best film."""
-    cards = []
-    for r in rows:
-        top = conn.execute(
-            "SELECT * FROM movies WHERE Director = ? ORDER BY IMDB_Rating DESC LIMIT 1",
-            (r["Director"],),
-        ).fetchone()
-        cards.append(director_card(r["Director"], r["movie_count"], dict(top) if top else None))
-    return cards
+    counts = Counter(c["director"] for c in cards if c.get("director"))
+    # Best (highest-rated) card per director, for a representative poster.
+    best_card: dict = {}
+    for c in cards:
+        d = c.get("director")
+        if not d:
+            continue
+        if d not in best_card or (c.get("rating") or 0) > (best_card[d].get("rating") or 0):
+            best_card[d] = c
+
+    top = counts.most_common(top_n)
+    director_cards = [director_card(name, n, best_card.get(name)) for name, n in top]
+    text = "\n".join(f"{name} ({n} films)" for name, n in top)
+    note = "\n\n(Across TMDB's current top-rated films.)"
+    return _result((text + note) if text else "No directors found.", director_cards, kind="director_list")

@@ -1,88 +1,38 @@
+"""Content-based recommendations, served live from TMDB.
+
+Replaces the local TF-IDF recommender. A seed title is resolved via TMDB search,
+then TMDB's own ``/movie/{id}/recommendations`` provides similar films. Used
+directly and as the grounding tool for the CrewAI RecommendationCrew (so the LLM
+cannot invent titles).
+
+The public interface is unchanged: ``recommend_movies(title, top_n)`` returns a
+list of dicts keyed by the recommender schema columns, or a friendly string when
+nothing is found.
 """
-Content-based movie recommender (TF-IDF + cosine similarity).
-
-Deterministic candidate selection — given a seed movie it returns the most
-similar films by genre / director / cast. Used directly and as the grounding
-tool for the CrewAI RecommendationCrew (so the LLM cannot invent titles).
-"""
-
-from difflib import get_close_matches
-
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-
-from cinellex_rag.core.data_loader import load_imdb
-from config.schema_config import (
-    COL_TITLE,
-    COL_RATING,
-    COL_DIRECTOR,
-    COL_GENRE,
-    COL_STAR1,
-    COL_STAR2,
-    COL_STAR3,
-    COL_STAR4,
-)
-
-
-class MovieRecommender:
-    def __init__(self, df):
-        self.df = df.reset_index(drop=True).copy()
-
-        # Build a single text feature from genre, director and the four stars.
-        # (There is no combined "Stars" column in the IMDB dataset.)
-        self.df["_features"] = (
-            self.df[COL_GENRE].fillna("") + " "
-            + self.df[COL_DIRECTOR].fillna("") + " "
-            + self.df[COL_STAR1].fillna("") + " "
-            + self.df[COL_STAR2].fillna("") + " "
-            + self.df[COL_STAR3].fillna("") + " "
-            + self.df[COL_STAR4].fillna("")
-        )
-
-        self.vectorizer = TfidfVectorizer(stop_words="english")
-        self.feature_matrix = self.vectorizer.fit_transform(self.df["_features"])
-
-        # Lower-cased titles for fuzzy resolution of free-form input.
-        self._titles_lower = self.df[COL_TITLE].str.lower().tolist()
-
-    def _resolve_title(self, movie_title: str):
-        """Resolve free-form input to an actual title via fuzzy matching."""
-        q = movie_title.lower().strip()
-        match = get_close_matches(q, self._titles_lower, n=1, cutoff=0.5)
-        if not match:
-            return None
-        idx = self._titles_lower.index(match[0])
-        return idx
-
-    def recommend(self, movie_title: str, top_n: int = 3):
-        idx = self._resolve_title(movie_title)
-        if idx is None:
-            return f"Movie '{movie_title}' not found in database."
-
-        sim_scores = cosine_similarity(
-            self.feature_matrix[idx], self.feature_matrix
-        ).flatten()
-        sim_scores[idx] = 0  # exclude the seed movie itself
-
-        top_indices = sim_scores.argsort()[-top_n:][::-1]
-
-        return (
-            self.df.iloc[top_indices][[COL_TITLE, COL_RATING, COL_DIRECTOR]]
-            .to_dict(orient="records")
-        )
-
-
-# Module-level singleton so the TF-IDF matrix is fit only once.
-_recommender = None
-
-
-def get_recommender() -> MovieRecommender:
-    global _recommender
-    if _recommender is None:
-        _recommender = MovieRecommender(load_imdb())
-    return _recommender
+from cinellex_rag.core import tmdb
+from cinellex_rag.core.movies import cards_for_ids
+from config.schema_config import COL_TITLE, COL_RATING, COL_DIRECTOR
 
 
 def recommend_movies(movie_title: str, top_n: int = 3):
-    """Convenience wrapper around the singleton recommender."""
-    return get_recommender().recommend(movie_title, top_n)
+    """Return up to ``top_n`` movies similar to ``movie_title``.
+
+    On success: a list of ``{COL_TITLE, COL_RATING, COL_DIRECTOR}`` dicts.
+    On failure: a human-readable string (no match / no recommendations).
+    """
+    if not movie_title or not movie_title.strip():
+        return "Please name a movie to base recommendations on."
+
+    seed = tmdb.search_movie(movie_title.strip())
+    if not seed:
+        return f"Movie '{movie_title}' not found."
+
+    recs = tmdb.movie_recommendations(seed.get("id"), limit=top_n)
+    if not recs:
+        return f"No recommendations found for '{movie_title}'."
+
+    cards = cards_for_ids([r["id"] for r in recs])
+    return [
+        {COL_TITLE: c["title"], COL_RATING: c["rating"], COL_DIRECTOR: c["director"]}
+        for c in cards
+    ]

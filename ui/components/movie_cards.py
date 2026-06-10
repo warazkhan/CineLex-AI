@@ -37,6 +37,16 @@ def _rating_badge(rating) -> str:
     return f'<span class="rating-badge">★ {rating}</span>' if rating else ""
 
 
+def _trailer_link(url: str, css_class: str = "trailer-link") -> str:
+    """Render a YouTube trailer link (from TMDB enrichment), if present."""
+    if not url:
+        return ""
+    return (
+        f'<a class="{css_class}" href="{html.escape(url)}" target="_blank" '
+        f'rel="noopener noreferrer">▶ Trailer</a>'
+    )
+
+
 def _fmt_votes(votes) -> str:
     if not votes:
         return ""
@@ -58,6 +68,7 @@ def render_movie_hero(m: dict) -> None:
     badges = " ".join(b for b in (_rating_badge(m.get("rating")), ) if b)
     votes = _fmt_votes(m.get("votes"))
     votes_html = f'<span class="mh-votes">{votes}</span>' if votes else ""
+    trailer = _trailer_link(m.get("trailer"))
 
     overview = html.escape(m.get("overview") or "")
     director = (
@@ -79,7 +90,7 @@ def render_movie_hero(m: dict) -> None:
         f'  <div class="mh-body">'
         f'    <div class="mh-title">{title} {year}</div>'
         f'    <div class="mh-meta">{meta}</div>'
-        f'    <div class="mh-badges">{badges} {votes_html}</div>'
+        f'    <div class="mh-badges">{badges} {votes_html} {trailer}</div>'
         f'    <div class="mh-overview">{overview}</div>'
         f'    {director}{stars_html}'
         f'  </div>'
@@ -102,6 +113,7 @@ def _card_html(m: dict) -> str:
         f'<div class="mc-note">{html.escape(m["overview"])}</div>'
         if m.get("kind") == "director" and m.get("overview") else ""
     )
+    trailer = _trailer_link(m.get("trailer"), css_class="trailer-link mc-trailer")
 
     return (
         f'<div class="movie-card">'
@@ -109,7 +121,7 @@ def _card_html(m: dict) -> str:
         f'  <div class="mc-body">'
         f'    <div class="mc-title">{title}</div>'
         f'    <div class="mc-sub">{sub}</div>'
-        f'    {overview}'
+        f'    {overview}{trailer}'
         f'  </div>'
         f'</div>'
     )

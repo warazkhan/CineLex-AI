@@ -26,7 +26,7 @@ spec:
       containers:
         - name: api
           image: warazkhan/cinellex-ai:latest   # CI will update this to the SHA
-          imagePullPolicy: Always               # ÔåÉ was IfNotPresent; needed since you reuse :latest tag
+          imagePullPolicy: Always               # ï¿½ï¿½ï¿½ was IfNotPresent; needed since you reuse :latest tag
           ports:
             - containerPort: 8000
           envFrom:
@@ -38,6 +38,11 @@ spec:
                 secretKeyRef:
                   name: cinellex-secrets
                   key: GROQ_API_KEY
+            - name: TMDB_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: cinellex-secrets
+                  key: TMDB_API_KEY
           livenessProbe:
             httpGet:
               path: /health
@@ -59,5 +64,7 @@ spec:
               memory: "512Mi"
               cpu: "250m"
             limits:
-              memory: "4Gi"
+              # Right-sized after the migration: the API no longer loads torch /
+              # embeddings / Chroma in-process â€” it just calls TMDB + Groq over HTTP.
+              memory: "1Gi"
               cpu: "1000m"

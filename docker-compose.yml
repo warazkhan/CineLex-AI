@@ -13,8 +13,9 @@ services:
     env_file:
       - .env
     volumes:
+      # Persist the regenerable TMDB response cache (data/tmdb_cache.json) across
+      # restarts. There is no SQLite/Chroma store to mount anymore.
       - ./data:/app/data
-      - ./cinellex_rag/retrieval/chroma_store:/app/cinellex_rag/retrieval/chroma_store
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s

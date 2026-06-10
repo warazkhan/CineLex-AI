@@ -1,8 +1,10 @@
 """
 RAGAS evaluation harness for the CineLex RAG pipeline.
 
-Judge = Groq (free tier) via langchain-groq; embeddings = the same HF
-all-MiniLM-L6-v2 the app uses. No paid API required.
+Judge = Groq (free tier) via langchain-groq; embeddings = HF all-MiniLM-L6-v2.
+These are *eval-only* dependencies (the app itself is now fully live on TMDB and
+uses no embeddings) — install them with ``pip install -r requirements-eval.txt``.
+No paid API required.
 
 The Groq generator (system-under-test) and the Groq judge share the free-tier
 quota, so evaluation runs single-threaded with a small question set.
@@ -39,9 +41,13 @@ from ragas.metrics import (
 )
 from ragas.run_config import RunConfig
 from langchain_groq import ChatGroq
+from langchain_huggingface import HuggingFaceEmbeddings
 
 from cinellex_rag.retrieval.rag import handle_rag
-from cinellex_rag.retrieval.vector_store import embedding_model
+
+# Eval-only embedding model. The app no longer builds a vector store, so RAGAS
+# brings its own embeddings purely to score its similarity-based metrics.
+EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 # Groq's chat API only allows n=1. answer_relevancy defaults to strictness=3
 # (which asks the judge for n=3 generations per call) → 400 error. Force n=1.
@@ -83,6 +89,10 @@ def get_judge():
     return LangchainLLMWrapper(llm)
 
 
+def get_embeddings():
+    return HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
+
+
 def run_eval(questions, k, judge, embeddings, run_config):
     samples = build_samples(questions, k)
     dataset = EvaluationDataset.from_list(samples)
@@ -120,7 +130,7 @@ def main():
         questions = questions[:args.limit]
 
     judge = get_judge()
-    embeddings = LangchainEmbeddingsWrapper(embedding_model)
+    embeddings = LangchainEmbeddingsWrapper(get_embeddings())
     run_config = RunConfig(max_workers=1, timeout=180, max_retries=5)
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)

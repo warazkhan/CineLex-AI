@@ -20,9 +20,6 @@ dist/
 # HuggingFace cache
 .cache/
 
-# Kaggle credentials
-kaggle.json
-
 # Editor / OS files
 .vscode/
 .DS_Store
@@ -34,11 +31,16 @@ kaggle.json
 *.log
 tmp/
 
-# Generated / local artifacts (regenerate via ingestion scripts)
+# Generated / local artifacts
 mlruns/
 mlflow.db
-data/cinellex.db
+
+# Legacy Chroma vector store — removed in the TMDB migration. This guard only
+# prevents re-committing a stale local copy that may still linger on disk.
 cinellex_rag/retrieval/chroma_store/
+
+# TMDB response cache (regenerated on demand from the TMDB API)
+data/tmdb_cache.json
 
 # Generated evaluation output (regenerate via evaluation/run_ragas.py)
 evaluation/results/

@@ -21,7 +21,7 @@ def select_route(state):
 
 
 def analytics_node(state):
-    """Deterministic SQLite analytics — no LLM, no CrewAI.
+    """Deterministic ranking analytics over TMDB /discover — no LLM, no CrewAI.
 
     handle_analytics returns the full result dict (answer + structured movie
     cards + source + metadata), passed through unchanged like rag_node."""
@@ -32,8 +32,8 @@ def analytics_node(state):
 
 
 def rag_node(state):
-    """Semantic retrieval / fuzzy lookup — returns handle_rag's dict unchanged
-    so the real source (fuzzy/retrieval) and metadata survive to the response."""
+    """TMDB keyword retrieval / fuzzy single-title lookup — returns handle_rag's
+    dict unchanged so the real source (fuzzy/retrieval) and metadata survive."""
     state["result"] = handle_rag(state["query"])
 
     logger.log_node("rag", {"query": state["query"]})

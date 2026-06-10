@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "cinellex-ai"
 version = "1.0.0"
-description = "Hybrid movie intelligence agent: deterministic SQLite analytics + RAG + agentic recommendation over the IMDB Top 1000."
+description = "Hybrid movie intelligence agent: analytics + RAG + agentic recommendation served fully live from the TMDB API."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
