@@ -47,7 +47,8 @@ def is_valid_query(query: str) -> bool:
     movie_keywords = [
         "movie", "film", "tell", "about", "top", "worst", "best",
         "list", "director", "actor", "plot", "story", "cast", "who",
-        "what", "when", "how", "latest", "recent", "highest", "rating"
+        "what", "when", "how", "latest", "recent", "highest", "rating",
+        "recommend", "suggest", "similar", "like"
     ]
 
     has_keyword = any(word in q for word in movie_keywords)

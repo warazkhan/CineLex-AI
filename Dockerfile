@@ -16,8 +16,13 @@ RUN pip install --upgrade pip --quiet && \
 
 COPY . .
 
-# Bake data into the image — no volumes needed
 RUN mkdir -p data/imdb cinellex_rag/retrieval/chroma_store
+
+# Build the SQLite analytics DB from the CSV at image-build time.
+# (data/cinellex.db is no longer committed — it is regenerated here so the
+# image stays self-contained. The Chroma RAG store is seeded at runtime via
+# a mounted volume / seed pod.)
+RUN python -m cinellex_rag.ingestion.ingest_sqlite
 
 EXPOSE 8000
 

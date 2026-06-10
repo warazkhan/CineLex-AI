@@ -3,89 +3,98 @@ from dotenv import load_dotenv
 from crewai import Agent, LLM
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
-from cinellex_rag.retrieval.rag import handle_rag
-from cinellex_rag.core.analytics import handle_analytics
+
+from cinellex_rag.core.movie_recommender import recommend_movies
+from config.schema_config import COL_TITLE, COL_RATING, COL_DIRECTOR
 
 load_dotenv()
 
 # ---------------------------
-# GROQ LLM (Llama 3.1 8B)
-# Free tier: 6000 TPM
-# num_retries=3 → litellm will auto-wait and retry on RateLimitError
-# max_tokens=300 → keeps each call small to preserve TPM headroom
+# LLM (Groq, free tier)
+# Model is env-overridable so it can be swapped without code changes.
+# max_tokens small + num_retries → keeps each call within the free TPM budget
+# and lets litellm auto-wait/retry on RateLimitError.
 # ---------------------------
 groq_llm = LLM(
-    model="groq/llama-3.1-8b-instant",
+    model=os.environ.get("CREW_LLM_MODEL", "groq/llama-3.1-8b-instant"),
     api_key=os.environ.get("GROQ_API_KEY"),
-    max_tokens=300,
-    num_retries=3
+    max_tokens=400,
+    num_retries=3,
 )
 
 
 # ---------------------------
-# TOOL DEFINITIONS
+# DETERMINISTIC GROUNDING TOOL
+# Supplies real candidate movies so the LLM cannot hallucinate titles.
 # ---------------------------
-class RAGToolInput(BaseModel):
-    query: str = Field(description="Movie question to search for")
+class RecommenderToolInput(BaseModel):
+    movie_title: str = Field(description="The seed movie title to find similar movies for")
 
 
-class AnalyticsToolInput(BaseModel):
-    query: str = Field(description="Analytics question about movies")
+class MovieRecommenderTool(BaseTool):
+    name: str = "movie_recommender_tool"
+    description: str = (
+        "Given a seed movie title, returns real similar movies "
+        "(title, rating, director) from the IMDB database. "
+        "Always use this to obtain factual candidate movies — never invent titles."
+    )
+    args_schema: type[BaseModel] = RecommenderToolInput
+
+    def _run(self, movie_title: str) -> str:
+        recs = recommend_movies(movie_title, top_n=5)
+        if isinstance(recs, str):
+            return recs
+        return "\n".join(
+            f"- {r[COL_TITLE]} (rating {r[COL_RATING]}, dir. {r[COL_DIRECTOR]})"
+            for r in recs
+        )
 
 
-class RAGTool(BaseTool):
-    name: str = "movie_rag_tool"
-    description: str = "Use for movie plot, story, overview, cast, details"
-    args_schema: type[BaseModel] = RAGToolInput
-
-    def _run(self, query: str) -> str:
-        result = handle_rag(query)
-        if isinstance(result, dict):
-            return result.get("answer", str(result))
-        return str(result)
-
-
-class AnalyticsTool(BaseTool):
-    name: str = "movie_analytics_tool"
-    description: str = "Use for rankings, top movies, worst movies, directors, stats"
-    args_schema: type[BaseModel] = AnalyticsToolInput
-
-    def _run(self, query: str) -> str:
-        result = handle_analytics(query)
-        return str(result) if result else "No analytics data found"
-
-
-rag_tool = RAGTool()
-analytics_tool = AnalyticsTool()
+movie_recommender_tool = MovieRecommenderTool()
 
 
 # ---------------------------
-# RAG SPECIALIST
-# max_iter=2: forces exactly one tool call then a final answer — no looping
+# THREE-AGENT RECOMMENDATION CREW
+# max_iter=2 keeps each agent to one tool call + a final answer (no looping).
 # ---------------------------
-rag_agent = Agent(
-    role="Movie Knowledge Expert",
-    goal="Answer movie-related questions using semantic retrieval",
-    backstory="Expert in movie plots, summaries, and storytelling context.",
-    tools=[rag_tool],
+taste_analyst = Agent(
+    role="Film Taste Analyst",
+    goal="Identify the seed movie the user referenced and describe the viewer's taste",
+    backstory=(
+        "You read a viewer's request, pinpoint the single movie they want "
+        "recommendations based on, and summarise the qualities they enjoy "
+        "(genre, tone, director, era)."
+    ),
     llm=groq_llm,
     verbose=True,
     allow_delegation=False,
-    max_iter=2
+    max_iter=2,
 )
 
-
-# ---------------------------
-# ANALYTICS SPECIALIST
-# max_iter=2: forces exactly one tool call then a final answer — no looping
-# ---------------------------
-analytics_agent = Agent(
+data_analyst = Agent(
     role="Movie Data Analyst",
-    goal="Provide rankings, statistics, and structured insights",
-    backstory="Expert in IMDB dataset analysis and movie rankings.",
-    tools=[analytics_tool],
+    goal="Fetch factual similar-movie candidates from the IMDB database",
+    backstory=(
+        "You use the movie_recommender_tool to pull real candidate movies for a "
+        "seed title. You report exactly what the tool returns and never invent titles."
+    ),
+    tools=[movie_recommender_tool],
     llm=groq_llm,
     verbose=True,
     allow_delegation=False,
-    max_iter=2
+    max_iter=2,
+)
+
+recommender = Agent(
+    role="Movie Recommender",
+    goal="Present a friendly, ranked recommendation grounded only in the candidate list",
+    backstory=(
+        "You turn the analyst's candidate movies into a concise, engaging "
+        "recommendation, explaining why each pick fits the viewer's taste. "
+        "You only recommend movies that appear in the provided candidate list."
+    ),
+    llm=groq_llm,
+    verbose=True,
+    allow_delegation=False,
+    max_iter=2,
 )

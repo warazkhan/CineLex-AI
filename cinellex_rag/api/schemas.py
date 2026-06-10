@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 
 class QueryRequest(BaseModel):
@@ -10,4 +10,5 @@ class QueryResponse(BaseModel):
     answer: str
     route: str
     source: str
+    movies: List[Dict[str, Any]] = []
     metadata: Optional[Dict[str, Any]] = {}

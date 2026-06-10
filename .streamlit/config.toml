@@ -1,0 +1,16 @@
+# CineLex AI — dark "cinema" theme.
+# These set Streamlit's *native* chrome (widgets, menus, scrollbars) so the
+# base UI matches the custom dark stylesheet in ui/assets/styles.css instead
+# of flashing a white default before the CSS loads.
+[theme]
+base = "dark"
+primaryColor = "#d4a056"          # gold accent
+backgroundColor = "#0e0b09"       # warm near-black
+secondaryBackgroundColor = "#18140f"
+textColor = "#f2ece2"             # warm cream
+font = "sans serif"
+
+[client]
+# Hide the built-in "Deploy" button (you're deploying on Railway, not
+# Streamlit Community Cloud). Keeps the useful menu items.
+toolbarMode = "minimal"

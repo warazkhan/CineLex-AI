@@ -30,8 +30,11 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Install package (editable) for test imports
+        run: pip install -e . --no-deps
+
       - name: Run tests
-        run: pytest cinellex_rag/tests/ -v
+        run: pytest tests/
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
 

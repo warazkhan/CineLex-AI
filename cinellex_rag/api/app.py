@@ -33,5 +33,6 @@ def query(request: QueryRequest):
         answer=result_data.get("answer", ""),
         route=result_data.get("route", "unknown"),
         source=result_data.get("metadata", {}).get("source", "unknown"),
+        movies=result_data.get("movies", []),
         metadata=result_data.get("metadata", {})
     )

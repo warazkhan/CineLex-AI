@@ -14,7 +14,6 @@ langgraph
 
 # Vector DB
 chromadb
-faiss-cpu
 
 # Embeddings
 sentence-transformers
@@ -23,12 +22,17 @@ huggingface-hub
 
 # Groq
 groq
+langchain-groq
 
 # MLflow
 mlflow
 
 # CrewAI
 crewai
+
+# RAG evaluation
+ragas
+datasets
 
 # API
 fastapi
@@ -43,5 +47,3 @@ pydantic
 requests
 tqdm
 pytest
-
-scikit-learn>=1.4.0

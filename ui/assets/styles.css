@@ -1,0 +1,436 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=Outfit:wght@300;400;500;600&display=swap');
+
+:root {
+    --bg:        #0e0b09;   /* warm near-black — the cinema */
+    --surface:   #18140f;   /* cards / panels */
+    --surface2:  #211b15;   /* inputs / chips */
+    --border:    #322a22;
+    --border2:   #473d31;
+    --gold:      #d4a056;   /* brighter gold reads well on dark */
+    --gold-soft: #e2b878;
+    --gold-dim:  rgba(212,160,86,0.14);
+    --text:      #f2ece2;   /* warm cream */
+    --text-dim:  #c3baac;
+    --text-mute: #8a8076;
+    --teal:      #5cc0c4;
+    --red:       #e57373;
+    --red-bg:    #2a1414;
+    --red-border:#5a2e2e;
+    --on-gold:   #14100b;   /* text on gold fills */
+}
+
+/* Force the dark background everywhere */
+html, body,
+[class*="css"],
+.stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stAppViewBlockContainer"],
+[data-testid="block-container"] {
+    background-color: var(--bg) !important;
+    color: var(--text) !important;
+}
+
+#MainMenu, footer { visibility: hidden; }
+.block-container { padding: 2rem 1.5rem 4rem; max-width: 900px; }
+
+/* Subtle cinematic vignette behind the content */
+.stApp {
+    background-image:
+        radial-gradient(900px 500px at 50% -10%, rgba(212,160,86,0.06), transparent 70%) !important;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 6px; border: 2px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+
+/* ── HERO (centered) ── */
+.hero-center {
+    text-align: center;
+    margin: 0.5rem 0 1.6rem;
+}
+.hero-wordmark {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 3.4rem;
+    font-weight: 700;
+    letter-spacing: -1.5px;
+    line-height: 1;
+    color: var(--text) !important;
+}
+.hero-wordmark .accent {
+    color: var(--gold) !important;
+}
+.hero-tagline {
+    font-size: 0.95rem;
+    color: #a89e90 !important;
+    margin-top: 0.55rem;
+}
+.hero-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 0.9rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-mute) !important;
+}
+.hero-status .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--teal);
+    box-shadow: 0 0 8px rgba(92,192,196,0.6);
+    animation: blink 2s ease-in-out infinite;
+}
+.hero-status.offline { color: var(--red) !important; }
+.hero-status.offline .dot { background: var(--red); box-shadow: 0 0 8px rgba(229,115,115,0.6); }
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.35; }
+}
+
+/* ── CHIPS LABEL ── */
+.chips-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-mute) !important;
+    margin: 1.8rem 0 0.7rem;
+}
+
+/* ── ALL BUTTONS base ── */
+.stButton > button {
+    font-family: 'Outfit', sans-serif !important;
+    font-weight: 500 !important;
+    font-size: 0.82rem !important;
+    border-radius: 9px !important;
+    cursor: pointer !important;
+    transition: all 0.18s ease !important;
+    width: 100% !important;
+
+    min-height: 52px !important;
+    white-space: normal !important;
+    line-height: 1.25 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: 0.4rem 0.5rem !important;
+
+    background: var(--surface2) !important;
+    color: var(--text-dim) !important;
+    border: 1px solid var(--border2) !important;
+    box-shadow: none !important;
+}
+.stButton > button:hover {
+    border-color: var(--gold) !important;
+    color: var(--gold) !important;
+    background: var(--gold-dim) !important;
+    transform: translateY(-1px) !important;
+}
+.stButton > button:active { transform: translateY(0) !important; }
+
+/* ── INPUT ── */
+.stTextInput > div > div > input {
+    background: var(--surface2) !important;
+    border: 1px solid var(--border2) !important;
+    border-radius: 10px !important;
+    color: var(--text) !important;
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 1rem !important;
+    padding: 0.78rem 1.1rem !important;
+    transition: border-color 0.2s, box-shadow 0.2s !important;
+}
+.stTextInput > div > div > input::placeholder { color: var(--text-mute) !important; }
+.stTextInput > div > div > input:focus {
+    border-color: var(--gold) !important;
+    box-shadow: 0 0 0 3px rgba(212,160,86,0.20) !important;
+    outline: none !important;
+}
+/* Streamlit wraps the input in its own surface — keep it dark too */
+.stTextInput > div > div { background: var(--surface2) !important; }
+
+/* ── CLEAR (×) button — sits in a narrow column beside the search input ── */
+.st-key-clear_input .stButton > button {
+    width: 44px !important;
+    min-height: 44px !important;
+    height: 44px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    background: var(--surface2) !important;
+    border: 1px solid var(--border2) !important;
+    color: var(--text-dim) !important;
+    font-size: 0.9rem !important;
+    line-height: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+.st-key-clear_input .stButton > button:hover {
+    background: var(--gold-dim) !important;
+    color: var(--gold) !important;
+    border-color: var(--gold) !important;
+    transform: none !important;
+}
+
+/* ── ASK button override ── */
+div[data-testid="column"] [data-testid="stButton-ask_btn"] button,
+button[kind="primaryFormSubmit"],
+#ask_btn button {
+    background: var(--gold) !important;
+    color: var(--on-gold) !important;
+    border: none !important;
+}
+
+/* ── ANSWER CARD ── */
+.answer-card {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-left: 3px solid var(--gold);
+    border-radius: 12px;
+    padding: 1.6rem 1.8rem;
+    font-size: 0.96rem;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    margin-top: 1.4rem;
+    position: relative;
+    overflow: hidden;
+    color: var(--text) !important;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.45);
+}
+.answer-card::before {
+    content: '\201C';
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 6rem;
+    color: rgba(212,160,86,0.10);
+    position: absolute;
+    top: -10px; right: 18px;
+    line-height: 1;
+    pointer-events: none;
+}
+.answer-query {
+    font-size: 0.72rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-mute) !important;
+    margin-bottom: 0.9rem;
+}
+.answer-query strong { color: var(--text-dim) !important; font-weight: 500; }
+.answer-text { color: var(--text) !important; }
+.answer-meta { display: flex; gap: 10px; margin-top: 1.2rem; flex-wrap: wrap; }
+.meta-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 0.71rem;
+    color: var(--text-mute) !important;
+    letter-spacing: 0.05em;
+}
+.meta-pill .val { color: var(--gold) !important; font-weight: 500; }
+
+/* ── DIVIDER ── */
+.divider { border: none; border-top: 1px solid var(--border); margin: 2rem 0 1.4rem; }
+
+/* ── HISTORY ── */
+.history-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-mute) !important;
+    margin-bottom: 0.8rem;
+}
+.history-item {
+    display: flex; gap: 12px;
+    align-items: flex-start;
+    padding: 0.7rem 0;
+    border-bottom: 1px solid var(--border);
+}
+.history-icon {
+    font-size: 0.8rem; flex-shrink: 0;
+    width: 24px; height: 24px;
+    border-radius: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    display: flex; align-items: center; justify-content: center;
+}
+.history-q { font-size: 0.85rem; font-weight: 500; color: var(--text-dim) !important; margin-bottom: 2px; }
+.history-a { font-size: 0.78rem; color: var(--text-mute) !important; line-height: 1.5; }
+
+/* ── SIDEBAR ── */
+section[data-testid="stSidebar"] {
+    background: var(--surface) !important;
+    border-right: 1px solid var(--border) !important;
+}
+section[data-testid="stSidebar"] .block-container { padding: 1.8rem 1.4rem !important; }
+.sb-wordmark {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.5rem; font-weight: 700;
+    color: var(--text) !important;
+    margin-bottom: 1.6rem; letter-spacing: -0.5px;
+}
+.sb-wordmark .accent { color: var(--gold) !important; }
+.stat-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.9rem 1.1rem; margin-bottom: 0.7rem;
+}
+.stat-label { font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-mute) !important; margin-bottom: 0.3rem; }
+.stat-val { font-family: 'Cormorant Garamond', serif; font-size: 2rem; font-weight: 600; color: var(--gold) !important; line-height: 1; }
+.stat-sub { font-size: 0.72rem; color: var(--text-mute) !important; margin-top: 3px; }
+.sb-section-label { font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-mute) !important; margin: 1.4rem 0 0.6rem; }
+.tech-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 0.3rem; }
+.tech-pill {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 3px 9px;
+    font-size: 0.68rem; color: var(--text-mute) !important; letter-spacing: 0.04em;
+}
+.route-bar {
+    display: flex; border-radius: 8px; overflow: hidden;
+    border: 1px solid var(--border); margin-top: 0.5rem; height: 28px;
+}
+.route-seg { display: flex; align-items: center; justify-content: center; font-size: 0.68rem; font-weight: 500; }
+.route-analytics { background: rgba(92,192,196,0.14); color: var(--teal) !important; }
+.route-rag       { background: var(--gold-dim); color: var(--gold) !important; }
+
+/* ── API STATUS (sidebar) ── */
+.api-status {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 0.74rem; color: var(--text-dim) !important;
+}
+.api-status .dot { width: 8px; height: 8px; border-radius: 50%; }
+.api-status.online  .dot { background: var(--teal); }
+.api-status.offline .dot { background: var(--red); }
+.api-status.offline { color: var(--red) !important; }
+
+/* ── EMPTY STATE ── */
+.empty-state { text-align: center; padding: 3rem 0 1rem; }
+.empty-icon  { font-size: 3rem; margin-bottom: 0.9rem; }
+.empty-title { font-family: 'Cormorant Garamond', serif; font-size: 1.7rem; font-weight: 600; color: var(--text) !important; }
+.empty-sub   { font-size: 0.9rem; margin: 0.6rem auto 0; max-width: 440px; color: #a89e90 !important; line-height: 1.6; }
+
+/* ── QUERY ECHO ── */
+.query-echo { font-size: 0.9rem; color: #a89e90 !important; margin: 0.6rem 0 1rem; }
+.query-echo strong { color: var(--text) !important; font-weight: 600; }
+
+/* ── MOVIE HERO CARD (single film) ── */
+.movie-hero {
+    display: flex; gap: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-left: 3px solid var(--gold);
+    border-radius: 14px;
+    padding: 1.4rem;
+    margin-top: 0.3rem;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.45);
+}
+.mh-poster { flex: 0 0 150px; }
+.mh-img { width: 150px; border-radius: 10px; display: block; box-shadow: 0 8px 26px rgba(0,0,0,0.6); }
+.mh-body { flex: 1; min-width: 0; }
+.mh-title { font-family: 'Cormorant Garamond', serif; font-size: 1.9rem; font-weight: 700; line-height: 1.1; color: var(--text) !important; }
+.mh-year { color: var(--text-mute) !important; font-weight: 400; }
+.mh-meta { font-size: 0.8rem; color: var(--text-mute) !important; margin-top: 0.3rem; }
+.mh-badges { margin: 0.75rem 0; display: flex; align-items: center; gap: 10px; }
+.mh-votes { font-size: 0.75rem; color: var(--text-mute) !important; }
+.mh-overview { font-size: 0.92rem; line-height: 1.65; color: var(--text-dim) !important; margin-bottom: 0.9rem; }
+.mh-credit { font-size: 0.85rem; color: var(--text-dim) !important; margin-bottom: 0.55rem; }
+.mh-credit .lbl { font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-mute) !important; margin-right: 6px; }
+.mh-stars { display: flex; flex-wrap: wrap; gap: 6px; }
+.star-chip { background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 3px 10px; font-size: 0.74rem; color: var(--text-dim) !important; }
+
+/* ── RATING BADGE ── */
+.rating-badge {
+    display: inline-flex; align-items: center;
+    background: var(--gold); color: var(--on-gold) !important;
+    border-radius: 7px; padding: 2px 8px;
+    font-size: 0.78rem; font-weight: 600;
+    font-family: 'Outfit', sans-serif;
+}
+
+/* ── MOVIE GRID (lists & recommendations) ── */
+.movie-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 1rem; margin-top: 0.3rem;
+}
+.movie-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 11px; overflow: hidden;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.movie-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.6);
+    border-color: var(--gold);
+}
+.mc-poster { position: relative; line-height: 0; }
+.mc-img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; display: block; }
+.mc-poster .rating-badge { position: absolute; top: 8px; right: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.45); }
+.mc-body { padding: 0.6rem 0.7rem 0.8rem; }
+.mc-title {
+    font-size: 0.86rem; font-weight: 600; line-height: 1.25; color: var(--text) !important;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.mc-sub { font-size: 0.72rem; color: var(--text-mute) !important; margin-top: 3px; }
+.mc-note { font-size: 0.72rem; color: var(--gold) !important; margin-top: 5px; }
+
+/* ── POSTER FALLBACK ──
+   Shown when a movie has no poster URL (an empty .poster-fallback div) OR
+   when an <img> URL fails to load. A successfully-loaded <img> is a replaced
+   element and does NOT paint ::before/::after, so the placeholder art only
+   appears for missing/broken posters — exactly what we want. */
+.mc-img, .mh-img { position: relative; }
+.mh-img { aspect-ratio: 2 / 3; object-fit: cover; }
+
+.poster-fallback { overflow: hidden; }
+.mh-img.poster-fallback { width: 150px; height: 222px; }
+.mc-img.poster-fallback { width: 100%; aspect-ratio: 2 / 3; }
+
+/* Film-strip background + centered movie icon */
+.poster-fallback::before,
+.mc-img::before,
+.mh-img::before {
+    content: "🎬";
+    position: absolute;
+    left: 0; right: 0; top: 0; bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.8rem;
+    opacity: 0.85;
+    color: var(--text-mute);
+    background:
+        repeating-linear-gradient(90deg, rgba(0,0,0,0.28) 0 7px, transparent 7px 18px) top    / 100% 15px no-repeat,
+        repeating-linear-gradient(90deg, rgba(0,0,0,0.28) 0 7px, transparent 7px 18px) bottom / 100% 15px no-repeat,
+        linear-gradient(155deg, #2a2118 0%, #14100b 100%);
+}
+
+
+/* ── RECENT SEARCHES ── */
+.recent-label { font-size: 0.68rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-mute) !important; margin: 2rem 0 0.7rem; }
+
+/* ── SIDEBAR ABOUT ── */
+.sb-about { font-size: 0.82rem; line-height: 1.6; color: var(--text-dim) !important; margin-bottom: 0.5rem; }
+.sb-list { margin: 0.2rem 0 0.6rem; padding-left: 1.1rem; }
+.sb-list li { font-size: 0.8rem; line-height: 1.5; color: var(--text-dim) !important; margin-bottom: 0.35rem; }
+.sb-examples li { color: #a89e90 !important; font-style: italic; }
+.sb-footer { font-size: 0.7rem; color: var(--text-mute) !important; margin-top: 1.4rem; border-top: 1px solid var(--border); padding-top: 0.8rem; }
+
+/* ── MOBILE ── */
+@media (max-width: 640px) {
+    .movie-hero { flex-direction: column; }
+    .mh-poster { align-self: center; }
+    .hero-wordmark { font-size: 2.8rem; }
+}
+
+/* ── REDUCED MOTION (accessibility) ── */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    .movie-card:hover, .stButton > button:hover { transform: none !important; }
+}

@@ -1,45 +1,63 @@
-from crewai import Crew
-from cinellex_rag.crew.agents import rag_agent, analytics_agent
-from cinellex_rag.crew.tasks import rag_task, analytics_task
+import re
 
-# Single source of truth for analytics routing.
-# Must stay in sync with analytics_keywords in graph/nodes.py.
-ANALYTICS_KEYWORDS = [
-    "top", "best", "worst", "list", "highest",
-    "lowest", "latest", "recent", "release", "releases", "director"
+from crewai import Crew, Process
+
+from cinellex_rag.crew.agents import taste_analyst, data_analyst, recommender
+from cinellex_rag.crew.tasks import taste_task, data_task, recommend_task
+from cinellex_rag.core.router import RECOMMEND_KEYWORDS
+from cinellex_rag.core.movie_recommender import recommend_movies
+from config.schema_config import COL_TITLE, COL_RATING, COL_DIRECTOR
+
+# Filler words to strip when isolating the seed title from a free-form request.
+_FILLER = RECOMMEND_KEYWORDS + [
+    "movies", "films", "movie", "film",
+    "give me", "show me", "some", "please", "like", "to", "for", "me",
 ]
+_STRIP_RE = re.compile(
+    r"\b(" + "|".join(re.escape(w) for w in _FILLER) + r")\b", flags=re.IGNORECASE
+)
 
 
-class MovieCrew:
+def extract_seed_title(query: str) -> str:
+    """Best-effort isolation of the seed movie title from a recommend query.
 
-    def __init__(self):
-        self.agents = {
-            "rag": rag_agent,
-            "analytics": analytics_agent
-        }
+    Only a hint — the deterministic recommender fuzzy-matches it against real titles.
+    """
+    s = _STRIP_RE.sub(" ", query.lower())
+    return re.sub(r"\s+", " ", s).strip()
 
-    def route(self, query: str) -> str:
-        q = query.lower()
-        if any(x in q for x in ANALYTICS_KEYWORDS):
-            return "analytics"
-        return "rag"
 
-    def run(self, query: str):
-        task_type = self.route(query)
+class RecommendationCrew:
+    """Three-agent CrewAI flow (taste → data → recommender), grounded on the
+    deterministic recommender. Falls back to a plain candidate list if the crew
+    errors or hits a Groq rate limit, so the endpoint never hard-fails."""
 
-        if task_type == "rag":
-            task = rag_task(self.agents["rag"], query)
+    def run(self, query: str) -> str:
+        seed = extract_seed_title(query)
+
+        try:
+            t_taste = taste_task(taste_analyst, query)
+            t_data = data_task(data_analyst, seed)
+            t_rec = recommend_task(recommender)
+            t_rec.context = [t_taste, t_data]
+
             crew = Crew(
-                agents=[self.agents["rag"]],
-                tasks=[task],
-                verbose=True
+                agents=[taste_analyst, data_analyst, recommender],
+                tasks=[t_taste, t_data, t_rec],
+                process=Process.sequential,
+                verbose=True,
             )
-        else:
-            task = analytics_task(self.agents["analytics"], query)
-            crew = Crew(
-                agents=[self.agents["analytics"]],
-                tasks=[task],
-                verbose=True
-            )
+            return str(crew.kickoff())
+        except Exception:
+            return self._fallback(seed)
 
-        return crew.kickoff()
+    @staticmethod
+    def _fallback(seed: str) -> str:
+        recs = recommend_movies(seed, top_n=3)
+        if isinstance(recs, str):
+            return recs
+        lines = [
+            f"{i}. {r[COL_TITLE]} — Rating: {r[COL_RATING]} (dir. {r[COL_DIRECTOR]})"
+            for i, r in enumerate(recs, 1)
+        ]
+        return f"Movies similar to '{seed}':\n" + "\n".join(lines)
