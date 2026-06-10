@@ -1,0 +1,59 @@
+# Render Blueprint — declares both CineLex services and, crucially, the env vars
+# each one needs, so a missing key can't silently break the deployment again.
+#
+# Secrets (TMDB_API_KEY, GROQ_API_KEY) are marked `sync: false`: their VALUES are
+# never read from this file or committed to git. You set them once in the Render
+# dashboard (API service → Environment) and they persist across deploys.
+#
+# IMPORTANT — you already have these two services created by hand. Applying this
+# Blueprint does NOT adopt them; Render creates NEW services from this spec, so
+# you'd get duplicates. Two safe ways to use this file:
+#   1. As documentation / a checklist of the env vars each service requires
+#      (keep managing the existing services in the dashboard). This is the
+#      no-risk option and all you need to fix the current "no posters" issue.
+#   2. As real infrastructure-as-code: delete the two hand-made services first,
+#      then Dashboard → New → Blueprint → select this repo to recreate them.
+services:
+  # --- FastAPI backend --------------------------------------------------------
+  # Owns ALL TMDB calls. THIS is the service that must have the keys — without
+  # TMDB_API_KEY the app answers in text with no posters.
+  - type: web
+    name: cinellex-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    branch: dev
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: false          # API is redeployed manually (matches current workflow)
+    envVars:
+      - key: TMDB_API_KEY      # REQUIRED — set the value in the dashboard
+        sync: false
+      - key: GROQ_API_KEY      # REQUIRED — powers LLM answers & recommendations
+        sync: false
+      - key: TMDB_ENABLED
+        value: "true"
+      - key: TMDB_POSTER_SIZE
+        value: w500
+      - key: TMDB_LANG
+        value: en-US
+      - key: TMDB_VOTE_COUNT_FLOOR
+        value: "300"
+      - key: CREWAI_DISABLE_TELEMETRY
+        value: "true"
+
+  # --- Streamlit UI -----------------------------------------------------------
+  # Talks to the API over HTTP; needs no TMDB/Groq keys of its own. Auto-rebuilds
+  # on push to the deploy branch.
+  - type: web
+    name: cinellex-ui
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerCommand: streamlit run streamlit_app.py --server.port $PORT --server.address 0.0.0.0
+    branch: dev
+    plan: free
+    autoDeploy: true
+    envVars:
+      # Full URL of the API service above — note the https:// (the UI's
+      # requests client needs a scheme). Update if you rename the API service.
+      - key: API_URL
+        value: https://cinellex-api.onrender.com
