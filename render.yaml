@@ -1,6 +1,14 @@
 # Render Blueprint — declares both CineLex services and, crucially, the env vars
 # each one needs, so a missing key can't silently break the deployment again.
 #
+# Build model: NATIVE runtime (runtime: python). Render clones this GitHub repo,
+# runs `buildCommand` to install deps, then `startCommand` to launch the process.
+# No Docker Hub image and no Dockerfile are involved — the old image-pull path is
+# gone. PYTHON_VERSION pins the interpreter to the 3.11 line the app is tested on
+# (Render's native default tracks a newer Python that crewai/litellm aren't
+# pinned for); OTEL_SDK_DISABLED / *_TELEMETRY reproduce the quiet-startup ENV the
+# Dockerfile used to bake in.
+#
 # Secrets (TMDB_API_KEY, GROQ_API_KEY) are marked `sync: false`: their VALUES are
 # never read from this file or committed to git. You set them once in the Render
 # dashboard (API service → Environment) and they persist across deploys.
@@ -10,22 +18,26 @@
 # you'd get duplicates. Two safe ways to use this file:
 #   1. As documentation / a checklist of the env vars each service requires
 #      (keep managing the existing services in the dashboard). This is the
-#      no-risk option and all you need to fix the current "no posters" issue.
+#      no-risk option.
 #   2. As real infrastructure-as-code: delete the two hand-made services first,
 #      then Dashboard → New → Blueprint → select this repo to recreate them.
 services:
   # --- FastAPI backend --------------------------------------------------------
   # Owns ALL TMDB calls. THIS is the service that must have the keys — without
-  # TMDB_API_KEY the app answers in text with no posters.
+  # TMDB_API_KEY the app answers in text with no posters. Built natively from the
+  # repo: pip-install requirements, then run uvicorn bound to Render's $PORT.
   - type: web
     name: cinellex-api
-    runtime: docker
-    dockerfilePath: ./Dockerfile
+    runtime: python
     branch: dev
     plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn cinellex_rag.api.app:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     autoDeploy: false          # API is redeployed manually (matches current workflow)
     envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
       - key: TMDB_API_KEY      # REQUIRED — set the value in the dashboard
         sync: false
       - key: GROQ_API_KEY      # REQUIRED — powers LLM answers & recommendations
@@ -38,21 +50,29 @@ services:
         value: en-US
       - key: TMDB_VOTE_COUNT_FLOOR
         value: "300"
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: OTEL_SDK_DISABLED
+        value: "true"
       - key: CREWAI_DISABLE_TELEMETRY
         value: "true"
+      - key: ANONYMIZED_TELEMETRY
+        value: "False"
 
   # --- Streamlit UI -----------------------------------------------------------
-  # Talks to the API over HTTP; needs no TMDB/Groq keys of its own. Auto-rebuilds
-  # on push to the deploy branch.
+  # Talks to the API over HTTP; needs no TMDB/Groq keys of its own. Built natively
+  # from the repo and auto-rebuilt on push to the deploy branch.
   - type: web
     name: cinellex-ui
-    runtime: docker
-    dockerfilePath: ./Dockerfile
-    dockerCommand: streamlit run streamlit_app.py --server.port $PORT --server.address 0.0.0.0
+    runtime: python
     branch: dev
     plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run streamlit_app.py --server.port $PORT --server.address 0.0.0.0
     autoDeploy: true
     envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
       # Full URL of the API service above — note the https:// (the UI's
       # requests client needs a scheme). Update if you rename the API service.
       - key: API_URL
