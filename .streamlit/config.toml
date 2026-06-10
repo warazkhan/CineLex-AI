@@ -11,6 +11,14 @@ textColor = "#f2ece2"             # warm cream
 font = "sans serif"
 
 [client]
-# Hide the built-in "Deploy" button (you're deploying on Railway, not
+# Hide the built-in "Deploy" button (you're deploying on Render, not
 # Streamlit Community Cloud). Keeps the useful menu items.
 toolbarMode = "minimal"
+
+[server]
+# Required for hosting behind a PaaS proxy (Render/Railway/etc.): run without
+# trying to open a browser, and let the platform's proxy terminate TLS/CORS so
+# WebSocket connections aren't rejected.
+headless = true
+enableCORS = false
+enableXsrfProtection = false
