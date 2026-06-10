@@ -4,8 +4,8 @@
 
 **CineLex AI** is a hybrid, local movie question-answering system that combines:
 
-- **Structured analytics** using **Pandas**  
-- **Semantic retrieval (RAG)** using **FAISS + embeddings**  
+- **Structured analytics** using **Pandas**
+- **Semantic retrieval (RAG)** using **Chroma + embeddings**
 - **Natural language reasoning** using a **local LLM**
 
 Users can ask free-form questions about movies — such as *top-rated films, directors, release years,* or *summaries* — over the **IMDB Top 1000 dataset**, without using external APIs or paid models.
@@ -17,13 +17,13 @@ This project demonstrates **end-to-end AI system design**, not just model usage.
 ## 🎯 Why CineLex AI?
 
 Most LLM demos:
-- Hallucinate facts  
-- Struggle with numeric or ranking queries  
-- Fail silently on structured data  
+- Hallucinate facts
+- Struggle with numeric or ranking queries
+- Fail silently on structured data
 
 **CineLex AI** solves this by combining deterministic analytics with RAG:
 
-> “Use code when precision is required; use LLMs when reasoning is required.”
+> "Use code when precision is required; use LLMs when reasoning is required."
 
 This hybrid approach mirrors how **real production AI systems** operate.
 
@@ -32,21 +32,21 @@ This hybrid approach mirrors how **real production AI systems** operate.
 ## 🧠 Capabilities (v1)
 
 ### Analytics-Driven Queries (Pandas)
-- Top N movies by rating  
-- Top directors  
-- Latest release years  
-- Vote or rating-based rankings  
+- Top N movies by rating
+- Top directors
+- Latest release years
+- Vote or rating-based rankings
 
 ### Knowledge Queries (RAG)
-- Movie summaries  
-- Director and cast information  
+- Movie summaries
+- Director and cast information
 - Natural language questions, e.g.:
-  - “Tell me about *The Shawshank Redemption*”
+  - "Tell me about *The Shawshank Redemption*"
 
 ### Hybrid Reasoning
 The agent automatically decides:
-- When to compute (Analytics)  
-- When to retrieve (RAG)  
+- When to compute (Analytics)
+- When to retrieve (RAG)
 - When to reason (LLM)
 
 ---
@@ -58,7 +58,7 @@ User Query
     ↓
 Query Router
     ├── Analytics Path (Pandas) --> Handles ranking / numeric / top-N queries
-    └── RAG Path (FAISS + LLM) --> Handles descriptive / semantic queries
+    └── RAG Path (Chroma + LLM) --> Handles descriptive / semantic queries
             ↓
      Response Formatter --> Formats analytics and RAG results consistently
             ↓
@@ -71,28 +71,30 @@ Query Router
 
 ```text
 AI-LEARNING/
-├── config/
-│   └── data_config.py
-├── data/
-│   └── imdb/
-│       ├── imdb_top_1000.csv
-│       └── metadata.json
-├── rag-imdb-knowledge-agent/
-│   ├── agents/
-│   │   └── rag_agent.py
-│   ├── core/
-│   │   ├── analytics.py
-│   │   ├── router.py
-│   │   └── formatter.py
-│   ├── ingestion/
-│   │   └── ingest_csv.py
-│   └── retrieval/
-│       └── vector_store.faiss/
-├── utils/
-│   ├── llm_utils.py
-│   └── movie_analytics.py
-├── requirements.txt
-└── .env
+├── pyproject.toml              # build metadata, pytest config, deps (sourced from requirements.txt)
+├── requirements.txt            # runtime dependencies (single source of truth)
+├── config/                     # column + path constants (single source of truth)
+├── data/imdb/                  # IMDB Top 1000 CSV (cinellex.db is regenerated, not committed)
+├── cinellex_rag/
+│   ├── api/                    # FastAPI app + schemas
+│   ├── core/                   # shared domain logic
+│   │   ├── router.py           # single-source query routing (recommend > analytics > rag)
+│   │   ├── analytics.py        # deterministic SQLite analytics
+│   │   ├── movie_recommender.py# content-based recommender (TF-IDF + cosine)
+│   │   ├── movies.py           # structured movie "cards" the UI renders
+│   │   └── schema.py           # response builder
+│   ├── retrieval/              # Chroma vector store + RAG handler
+│   ├── crew/                   # CrewAI 3-agent recommendation crew
+│   ├── graph/                  # LangGraph: route → {analytics|rag|recommend} → format
+│   ├── ingestion/              # ingest_csv.py (Chroma) + ingest_sqlite.py (SQLite)
+│   ├── observability/          # MLflow logging
+│   └── utils/                  # llm_utils (Groq client factory)
+├── tests/                      # pytest suite (root-level, by convention)
+├── evaluation/                 # RAGAS harness + ground-truth dataset
+├── streamlit_app.py            # UI launcher (thin) → ui/app.py
+├── ui/                         # Streamlit UI package (config, styles, api_client, components/)
+├── k8s/                        # staging/production manifests + ArgoCD
+└── Dockerfile / docker-compose.yml
 ```
 
 ---
@@ -100,9 +102,9 @@ AI-LEARNING/
 ## 🛠 How It Works
 
 ### 1️⃣ Data Ingestion
-- IMDB CSV is cleaned and normalized.  
-- Movie rows are converted to text documents.  
-- Embeddings are generated and stored in a FAISS vector index.  
+- IMDB CSV is cleaned and normalized.
+- Movie rows are converted to text documents.
+- Embeddings are generated and stored in a Chroma vector store.
 
 ### 2️⃣ Query Routing
 - The agent inspects the query:
@@ -110,8 +112,8 @@ AI-LEARNING/
   - **Descriptive / semantic → RAG**
 
 ### 3️⃣ Answer Generation
-- Analytics answers are computed deterministically.  
-- RAG answers are generated using retrieved context + LLM.  
+- Analytics answers are computed deterministically.
+- RAG answers are generated using retrieved context + LLM.
 - Results are formatted consistently.
 
 ---
@@ -130,12 +132,15 @@ top 3 movies with directors
 
 ## 🧰 Tech Stack
 
-- Python  
-- Pandas (analytics)  
-- FAISS (vector database)  
-- LangChain  
-- HuggingFace embeddings  
-- Flan-T5 (local LLM)
+- Python
+- SQLite + Pandas (deterministic analytics)
+- Chroma (vector database) + HuggingFace `all-MiniLM-L6-v2` embeddings
+- LangGraph (orchestration) + LangChain
+- CrewAI (3-agent recommendation crew — used for the recommendation path only)
+- Groq `llama-3.1-8b-instant` (LLM, free tier)
+- FastAPI + Streamlit
+- MLflow (observability) · RAGAS (RAG evaluation)
+- Docker · Kubernetes · ArgoCD (GitOps)
 
 ---
 
@@ -151,44 +156,64 @@ source .venv/bin/activate
 # Windows PowerShell
 .venv\Scripts\Activate.ps1
 
-# 3. Install dependencies
-pip install -r requirements.txt
+# 3. Install dependencies (editable install registers the package so imports + tests work anywhere)
+pip install -e .
+# (CI / Docker install only the runtime deps: pip install -r requirements.txt)
 
-# 4. Build vector store
-python rag-imdb-knowledge-agent/ingestion/ingest_csv.py
+# 4. Configure environment
+cp .env.example .env        # then add your free GROQ_API_KEY + HF_TOKEN
 
-# 5. Run the agent
-python rag-imdb-knowledge-agent/agents/rag_agent.py
+# 5. Build the data stores (regenerated locally — not committed)
+python -m cinellex_rag.ingestion.ingest_sqlite   # SQLite analytics DB
+python -m cinellex_rag.ingestion.ingest_csv      # Chroma vector store
+
+# 6. Run the API + UI
+uvicorn cinellex_rag.api.app:app --reload        # http://localhost:8000
+streamlit run streamlit_app.py                   # http://localhost:8501
+
+# Or everything via Docker
+docker-compose up --build
+```
+
+### 🧪 Running the tests
+
+```bash
+pytest            # test paths + pythonpath are configured in pyproject.toml
 ```
 
 ---
 
-## ⚠ Current Limitations (Intentional)
+## ✅ Shipped
 
-- No recommender system (yet)  
-- No web UI  
-- English movies dominate dataset  
-- No feedback loop / evaluation metrics  
+- 🎯 Content-based movie recommender (TF-IDF) + 3-agent CrewAI recommendation flow
+- 🌐 FastAPI API + Streamlit "answer-engine" UI (modular `ui/` package) with rich movie-poster cards and a per-answer "How I answered this" developer reveal
+- 📊 RAG evaluation harness (RAGAS: faithfulness, answer relevancy, context precision/recall)
+- 🧭 Honest 3-path routing (analytics / rag / recommend) on LangGraph
+- 🐳 Docker + Kubernetes + ArgoCD GitOps
+
+## ⚠ Current Limitations
+
+- English movies dominate the IMDB Top 1000 dataset
+- Recommendations are content-based only (no collaborative filtering)
+- Free-tier LLM (Groq) — RAGAS evaluation runs on a small set to respect rate limits
 
 ---
 
 ## 🔮 Planned Improvements (v2)
 
-- 🎯 Movie recommender system  
-- 🔁 Query refinement + reranking  
-- 📊 Evaluation metrics (Recall@K, accuracy)  
-- 🌐 FastAPI / Streamlit interface  
-- 🧠 Memory-augmented agent  
+- 🔁 Query refinement + reranking
+- 🧠 Memory-augmented agent
 - 🎥 Multimodal extensions (trailers, posters)
+- 📈 Larger evaluation set + automated eval in CI
 
 ---
 
 ## 🧠 What This Project Demonstrates
 
-- Agentic reasoning  
-- Hybrid AI system design  
-- RAG + analytics integration  
-- Local LLM deployment  
+- Agentic reasoning
+- Hybrid AI system design
+- RAG + analytics integration
+- Local LLM deployment
 - Clean modular architecture
 
 ---
@@ -202,10 +227,10 @@ python rag-imdb-knowledge-agent/agents/rag_agent.py
 ## 🏁 Acknowledgements
 
 Special thanks to:
-- **IMDB Dataset** for movie data  
-- **HuggingFace** for embeddings  
-- **FAISS** for vector search  
-- **LangChain** for RAG orchestration  
+- **IMDB Dataset** for movie data
+- **HuggingFace** for embeddings
+- **Chroma** for vector search
+- **LangChain** for RAG orchestration
 
 ---
 

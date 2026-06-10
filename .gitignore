@@ -5,9 +5,17 @@ venv/
 # Environment variables
 .env
 
+# Streamlit secrets (never commit real keys)
+.streamlit/secrets.toml
+
 # Python cache
 __pycache__/
 *.pyc
+
+# Python build / packaging artifacts
+*.egg-info/
+build/
+dist/
 
 # HuggingFace cache
 .cache/
@@ -15,13 +23,22 @@ __pycache__/
 # Kaggle credentials
 kaggle.json
 
-# FAISS / vector store artifacts
-rag-imdb-knowledge-agent/retrieval/
-
 # Editor / OS files
 .vscode/
 .DS_Store
 
+# Claude Code tooling (specs & local settings — not part of the project)
+.claude/
+
 # Logs & temp
 *.log
 tmp/
+
+# Generated / local artifacts (regenerate via ingestion scripts)
+mlruns/
+mlflow.db
+data/cinellex.db
+cinellex_rag/retrieval/chroma_store/
+
+# Generated evaluation output (regenerate via evaluation/run_ragas.py)
+evaluation/results/

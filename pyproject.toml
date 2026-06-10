@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cinellex-ai"
+version = "1.0.0"
+description = "Hybrid movie intelligence agent: deterministic SQLite analytics + RAG + agentic recommendation over the IMDB Top 1000."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+  { name = "Wara Zubair Khan", email = "warazkhan@outlook.com" },
+]
+requires-python = ">=3.11"
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+# Single source of truth for runtime deps; the Dockerfile installs the same file.
+dependencies = { file = ["requirements.txt"] }
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["cinellex_rag*", "config*", "ui*"]
+
+[tool.pytest.ini_options]
+# Tests live at the repo root; pythonpath = "." lets them import the top-level
+# packages (cinellex_rag, config, ui) without an editable install or sys.path hacks.
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-v"

@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cinellex-api
+  namespace: cinellex-staging
+  labels:
+    app: cinellex-ai
+    component: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cinellex-ai
+      component: api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: cinellex-ai
+        component: api
+    spec:
+      containers:
+        - name: api
+          image: warazkhan/cinellex-ai:latest   # CI will update this to the SHA
+          imagePullPolicy: Always               # ‘Â… was IfNotPresent; needed since you reuse :latest tag
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: cinellex-config
+          env:
+            - name: GROQ_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: cinellex-secrets
+                  key: GROQ_API_KEY
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 90
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "4Gi"
+              cpu: "1000m"

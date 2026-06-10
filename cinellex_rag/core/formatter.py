@@ -1,9 +1,17 @@
-def format_movies(df):
-    return "\n".join(
-        f"{row.Title} ({int(row.Year)}) – Rating: {row.IMDB_Rating}"
-        for _, row in df.iterrows()
-    )
+def normalize(result):
+    """
+    Converts all node outputs into a consistent schema.
+    """
 
+    if isinstance(result, dict):
+        return {
+            "answer": result.get("answer", ""),
+            "source": result.get("source", "unknown"),
+            "metadata": result.get("metadata", {})
+        }
 
-def format_directors(series):
-    return "\n".join(series.index.tolist())
+    return {
+        "answer": str(result),
+        "source": "unknown",
+        "metadata": {}
+    }

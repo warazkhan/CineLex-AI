@@ -1,0 +1,62 @@
+[
+  {
+    "question": "Which film follows an aging crime patriarch who gradually transfers control of his clandestine family empire to his reluctant youngest son?",
+    "ground_truth": "The Godfather, directed by Francis Ford Coppola."
+  },
+  {
+    "question": "What movie is about a skilled thief who steals corporate secrets through dream-sharing technology and is hired to plant an idea in a target's mind?",
+    "ground_truth": "Inception, directed by Christopher Nolan."
+  },
+  {
+    "question": "Which film tells the story of a banker sentenced to life in prison who sustains hope and friendship over many years behind bars?",
+    "ground_truth": "The Shawshank Redemption, directed by Frank Darabont."
+  },
+  {
+    "question": "What movie features a computer hacker who discovers that his reality is a simulation controlled by machines?",
+    "ground_truth": "The Matrix."
+  },
+  {
+    "question": "Which film pits a caped vigilante against an anarchic criminal known as the Joker who terrorizes Gotham City?",
+    "ground_truth": "The Dark Knight, directed by Christopher Nolan."
+  },
+  {
+    "question": "What animated movie follows a young lion prince who flees his kingdom after the death of his father?",
+    "ground_truth": "The Lion King."
+  },
+  {
+    "question": "Which film depicts a romance between two passengers aboard a doomed ocean liner that strikes an iceberg on its maiden voyage?",
+    "ground_truth": "Titanic, directed by James Cameron."
+  },
+  {
+    "question": "What movie follows a kind-hearted man with a low IQ who unwittingly influences several major historical events of the 20th century?",
+    "ground_truth": "Forrest Gump."
+  },
+  {
+    "question": "Which animated film is about a group of toys that come to life whenever humans are not present?",
+    "ground_truth": "Toy Story."
+  },
+  {
+    "question": "What World War II film follows a squad of soldiers sent behind enemy lines to retrieve a single paratrooper?",
+    "ground_truth": "Saving Private Ryan, directed by Steven Spielberg."
+  },
+  {
+    "question": "Which film features an insomniac office worker who, with a charismatic soap salesman, forms an underground fighting club?",
+    "ground_truth": "Fight Club."
+  },
+  {
+    "question": "What movie interweaves several intersecting Los Angeles crime stories involving hitmen, a boxer, and mob figures?",
+    "ground_truth": "Pulp Fiction, directed by Quentin Tarantino."
+  },
+  {
+    "question": "Which film chronicles the decades-long rise and fall of a mobster within the Italian-American mafia?",
+    "ground_truth": "Goodfellas, directed by Martin Scorsese."
+  },
+  {
+    "question": "What movie follows a team of explorers who travel through a wormhole in space in search of a new home for humanity?",
+    "ground_truth": "Interstellar, directed by Christopher Nolan."
+  },
+  {
+    "question": "Which film is about an ambitious young jazz drummer pushed to his breaking point by an abusive music instructor?",
+    "ground_truth": "Whiplash."
+  }
+]
