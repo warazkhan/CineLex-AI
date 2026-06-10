@@ -15,8 +15,12 @@ groq
 # Orchestration
 langgraph
 
-# Agentic recommendation crew
-crewai
+# Agentic recommendation crew.
+# Pinned: newer crewai releases make litellm an optional extra and route Groq
+# (a non-native provider) through it, so an unpinned install drops litellm and
+# breaks `groq/*` model init at import time. 0.193.2 hard-depends on
+# litellm==1.74.9, keeping the Groq path working in CI and production.
+crewai==0.193.2
 
 # API
 fastapi
