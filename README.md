@@ -86,7 +86,8 @@ renderer.
 ```text
 AI-LEARNING/
 ├── pyproject.toml              # build metadata, pytest config, deps (sourced from requirements.txt)
-├── requirements.txt            # runtime dependencies (single source of truth — slim, no ML stack)
+├── requirements.txt            # runtime dependencies for the app image / production service
+├── requirements-dev.txt        # pytest + local/CI test tooling
 ├── requirements-eval.txt       # opt-in RAGAS evaluation extras (embeddings + ragas)
 ├── config/                     # tmdb_config (auth/cache/tuning) + recommender-schema keys
 ├── data/                       # only the regenerable TMDB response cache (tmdb_cache.json, gitignored)
@@ -106,6 +107,7 @@ AI-LEARNING/
 │   └── utils/                  # llm_utils (Groq client factory)
 ├── tests/                      # pytest suite (TMDB client fully mocked — offline)
 ├── evaluation/                 # opt-in RAGAS harness + ground-truth dataset
+├── .github/workflows/          # CI/CD pipeline (tests, Docker build, Render hooks)
 ├── streamlit_app.py            # UI launcher (thin) → ui/app.py
 ├── ui/                         # Streamlit UI package (config, styles, api_client, components/)
 ├── k8s/                        # staging/production manifests + ArgoCD
@@ -168,6 +170,7 @@ recommend movies like Inception
 - MLflow (observability)
 - RAGAS (opt-in offline RAG evaluation — `requirements-eval.txt`)
 - Docker · Kubernetes · ArgoCD (GitOps)
+- GitHub Actions + Render deploy hooks for CI/CD
 
 ---
 
@@ -181,15 +184,21 @@ source .venv/bin/activate
 # Windows PowerShell
 .venv\Scripts\Activate.ps1
 
-# 2. Install dependencies (editable install registers the package so imports + tests work)
-pip install -e .
-# (CI / Docker install only the runtime deps: pip install -r requirements.txt)
+# 2. Install dependencies
+# Runtime deps used by the app image and local API/UI runs
+pip install -r requirements.txt
+# Dev/test tooling used locally and in CI
+pip install -r requirements-dev.txt
+# Editable install so pytest imports the package cleanly
+pip install -e . --no-deps
 
 # 3. Configure environment
 cp .env.example .env        # add your free GROQ_API_KEY and TMDB_API_KEY
 
 # 4. Run the API + UI  (no data-ingestion step — the app is live on TMDB)
 uvicorn cinellex_rag.api.app:app --reload        # http://localhost:8000
+# Health check: http://localhost:8000/health
+# Docs:         http://localhost:8000/docs
 streamlit run streamlit_app.py                   # http://localhost:8501
 
 # Or everything via Docker
@@ -203,6 +212,8 @@ docker-compose up --build
 ### 🧪 Running the tests
 
 ```bash
+pip install -r requirements-dev.txt
+pip install -e . --no-deps
 pytest            # test paths + pythonpath configured in pyproject.toml
                   # the TMDB client is fully mocked, so the suite runs offline (no key needed)
 ```
