@@ -90,10 +90,22 @@ jobs:
 
       # ── Render auto-deploy: ping the deploy hooks after the image is pushed ──
       - name: Trigger Render deploy (API)
-        run: curl -fsSL -X POST "${{ secrets.RENDER_DEPLOY_HOOK_API }}"
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_API }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "RENDER_DEPLOY_HOOK_API not set — skipping"; exit 0
+          fi
+          curl -fsSL -X POST "$HOOK"
 
       - name: Trigger Render deploy (UI)
-        run: curl -fsSL -X POST "${{ secrets.RENDER_DEPLOY_HOOK_UI }}"
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_UI }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "RENDER_DEPLOY_HOOK_UI not set — skipping"; exit 0
+          fi
+          curl -fsSL -X POST "$HOOK"
 
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true

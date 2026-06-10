@@ -4,6 +4,13 @@ from cinellex_rag.api.app import app
 
 client = TestClient(app)
 
+
+def test_root_returns_ok():
+    r = client.get("/")
+    assert r.status_code == 200
+    assert r.json() == {"status": "ok", "service": "cinellex-ai"}
+
+
 def test_health():
     assert client.get("/health").json() == {"status": "ok", "service": "cinellex-ai"}
 

@@ -10,6 +10,11 @@ app = FastAPI(
 )
 
 
+@app.get("/")
+def root():
+    return {"status": "ok", "service": "cinellex-ai"}
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "cinellex-ai"}
