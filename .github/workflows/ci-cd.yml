@@ -88,6 +88,13 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # ── Render auto-deploy: ping the deploy hooks after the image is pushed ──
+      - name: Trigger Render deploy (API)
+        run: curl -fsSL -X POST "${{ secrets.RENDER_DEPLOY_HOOK_API }}"
+
+      - name: Trigger Render deploy (UI)
+        run: curl -fsSL -X POST "${{ secrets.RENDER_DEPLOY_HOOK_UI }}"
+
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
