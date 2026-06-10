@@ -12,7 +12,12 @@ def test_root_returns_ok():
 
 
 def test_health():
-    assert client.get("/health").json() == {"status": "ok", "service": "cinellex-ai"}
+    body = client.get("/health").json()
+    assert body["status"] == "ok"
+    assert body["service"] == "cinellex-ai"
+    # tmdb_enabled reflects whether a TMDB key is configured (False in CI);
+    # assert its presence and type, not a fixed value.
+    assert isinstance(body["tmdb_enabled"], bool)
 
 def test_empty_query_rejected():
     r = client.post("/query", json={"query": ""})
