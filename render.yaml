@@ -60,19 +60,21 @@ services:
         value: "False"
 
   # --- Streamlit UI -----------------------------------------------------------
-  # Talks to the API over HTTP; needs no TMDB/Groq keys of its own. Built natively
-  # from the repo and auto-rebuilt on push to the deploy branch.
+  # Talks to the API over HTTP; needs no TMDB/Groq keys of its own. Pulls the
+  # prebuilt Docker Hub image (same image as the API) instead of building from
+  # the repo — CI tags `:latest` on each dev push and pings the UI deploy hook to
+  # roll it. The image's default CMD is the API's uvicorn line, so dockerCommand
+  # overrides it to launch Streamlit bound to Render's $PORT. No PYTHON_VERSION /
+  # buildCommand here: the interpreter and deps are already baked into the image.
   - type: web
     name: cinellex-ui
-    runtime: python
-    branch: dev
+    runtime: image
+    image:
+      url: docker.io/warazkhan/cinellex-ai:latest
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: streamlit run streamlit_app.py --server.port $PORT --server.address 0.0.0.0
+    dockerCommand: streamlit run streamlit_app.py --server.port $PORT --server.address 0.0.0.0
     autoDeploy: true
     envVars:
-      - key: PYTHON_VERSION
-        value: "3.11.9"
       # Full URL of the API service above — note the https:// (the UI's
       # requests client needs a scheme). Update if you rename the API service.
       - key: API_URL
