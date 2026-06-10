@@ -41,10 +41,16 @@ class RecommendationCrew:
             t_rec = recommend_task(recommender)
             t_rec.context = [t_taste, t_data]
 
+            # memory=False is the default, but set it explicitly: enabling crew
+            # memory makes crewai instantiate chromadb's default embedder, which
+            # downloads an ~80 MB ONNX MiniLM model from HuggingFace at runtime
+            # (the "Fetching 5 files" cold-start step). We ground on TMDB instead,
+            # so there is nothing to embed.
             crew = Crew(
                 agents=[taste_analyst, data_analyst, recommender],
                 tasks=[t_taste, t_data, t_rec],
                 process=Process.sequential,
+                memory=False,
                 verbose=True,
             )
             return str(crew.kickoff())

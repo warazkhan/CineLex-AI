@@ -30,11 +30,18 @@ uvicorn
 streamlit
 
 # Observability
-mlflow
+# mlflow-skinny is the tracking client only (set_experiment / start_run /
+# log_param / log_metric — all this app uses). It omits the heavy server stack
+# (flask, gunicorn, scipy, pyarrow, gitpython, ...) that full `mlflow` pulls in,
+# which is the largest avoidable contributor to image size. The logger no-ops
+# unless MLFLOW_TRACKING_URI is set (see observability/mlflow_logger.py), so on
+# free-tier Render — where the local ./mlruns store is wiped on every spin-down
+# — mlflow is never even imported.
+mlflow-skinny
 
 # Utilities
 python-dotenv
 pydantic
 
-# Tests
-pytest
+# NOTE: test-only deps (pytest) live in requirements-dev.txt so they don't ship
+# in the production image. CI installs requirements-dev.txt before running tests.

@@ -1,0 +1,10 @@
+# CineLex AI — development / test extras.
+#
+# Keeps test-only tooling out of the production Docker image (requirements.txt
+# is what the Dockerfile installs). Install locally / in CI with:
+#
+#     pip install -r requirements-dev.txt
+#
+-r requirements.txt
+
+pytest

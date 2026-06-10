@@ -1,7 +1,32 @@
+# --- Virtualenv / Python caches ---
 .venv
 __pycache__
 *.pyc
 *.pyo
+.pytest_cache
+.mypy_cache
+.ruff_cache
+
+# --- Git / CI / secrets ---
 .git
-mlruns
+.github
+.gitignore
 .env
+*.env
+
+# --- Runtime artifacts (regenerated; never belong in the image) ---
+mlruns
+data/tmdb_cache.json
+
+# --- Non-runtime code & infra: not imported by the API or the UI, so keep it
+#     out of the image to shrink it and avoid shipping tests/eval/k8s. ---
+tests
+evaluation
+requirements-dev.txt
+requirements-eval.txt
+k8s
+
+# --- Docs ---
+*.md
+docs
+LICENSE
