@@ -1,4 +1,4 @@
-"""Renders structured movie cards (hero card, poster grid, director cards).
+"""Renders structured movie cards (hero card, poster grid).
 
 All paths return the same card shape (see cinellex_rag/core/movies.py), so this
 is the single place that knows how a movie looks on screen.
@@ -109,10 +109,6 @@ def _card_html(m: dict) -> str:
         sub = html.escape(" · ".join(bits))
 
     badge = _rating_badge(m.get("rating"))
-    overview = (
-        f'<div class="mc-note">{html.escape(m["overview"])}</div>'
-        if m.get("kind") == "director" and m.get("overview") else ""
-    )
     trailer = _trailer_link(m.get("trailer"), css_class="trailer-link mc-trailer")
 
     return (
@@ -121,7 +117,7 @@ def _card_html(m: dict) -> str:
         f'  <div class="mc-body">'
         f'    <div class="mc-title">{title}</div>'
         f'    <div class="mc-sub">{sub}</div>'
-        f'    {overview}{trailer}'
+        f'    {trailer}'
         f'  </div>'
         f'</div>'
     )

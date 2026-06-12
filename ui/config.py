@@ -33,7 +33,6 @@ POSTER_WIDTH = 400
 SUGGESTIONS = [
     "Top 10 movies by rating",
     "Tell me about Inception",
-    "Top 10 directors",
     "Worst rated movies",
     "Latest releases",
     "Highest grossing movies",

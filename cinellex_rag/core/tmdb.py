@@ -170,6 +170,21 @@ def search_movie(query: str, year=None) -> dict | None:
     return results[0] if results else None
 
 
+def search_keywords(query: str, limit: int = 3) -> list:
+    """Resolve a free-text phrase to TMDB keyword records (``{id, name}``).
+
+    These ids feed ``discover(..., with_keywords=...)`` so a thematic question
+    can be retrieved over TMDB's curated concept taxonomy instead of title text.
+    """
+    if not TMDB_ENABLED or not query:
+        return []
+    results = _disk_cached(
+        f"keyword:{query.strip().lower()}",
+        lambda: (_get("/search/keyword", {"query": query}) or {}).get("results") or [],
+    )
+    return (results or [])[:limit]
+
+
 def movie_details(tmdb_id: int) -> dict | None:
     """Full movie record (genres, runtime, revenue, imdb_id, credits, videos,
     certifications) in a single call, cached on disk."""
@@ -196,8 +211,13 @@ def movie_recommendations(tmdb_id: int, limit: int = 12) -> list:
 
 
 def discover(sort_by: str, *, vote_count_gte: int | None = None,
-             release_lte: str | None = None, page: int = 1) -> list:
-    """`/discover/movie` ranking query → raw result dicts (volatile cache)."""
+             release_lte: str | None = None, with_keywords: str | None = None,
+             with_genres: str | None = None, page: int = 1) -> list:
+    """`/discover/movie` ranking query → raw result dicts (volatile cache).
+
+    ``with_keywords`` / ``with_genres`` are TMDB id filters (comma = AND, pipe =
+    OR); the descriptive RAG path uses them to retrieve by concept/genre.
+    """
     if not TMDB_ENABLED:
         return []
 
@@ -207,9 +227,13 @@ def discover(sort_by: str, *, vote_count_gte: int | None = None,
             params["vote_count.gte"] = vote_count_gte
         if release_lte is not None:
             params["release_date.lte"] = release_lte
+        if with_keywords:
+            params["with_keywords"] = with_keywords
+        if with_genres:
+            params["with_genres"] = with_genres
         return (_get("/discover/movie", params) or {}).get("results") or []
 
-    key = f"discover:{sort_by}|{vote_count_gte}|{release_lte}|{page}"
+    key = f"discover:{sort_by}|{vote_count_gte}|{release_lte}|{with_keywords}|{with_genres}|{page}"
     return _mem_cached(key, _do) or []
 
 

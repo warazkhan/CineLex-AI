@@ -108,7 +108,7 @@ def _render_empty_state() -> None:
     <div class="empty-state">
       <div class="empty-icon">🍿</div>
       <div class="empty-title">What do you want to know about movies?</div>
-      <div class="empty-sub">Ask about a film, rankings, directors, or get recommendations — pick a suggestion above to start.</div>
+      <div class="empty-sub">Ask about a film, rankings, or get recommendations — pick a suggestion above to start.</div>
     </div>""",
         unsafe_allow_html=True,
     )

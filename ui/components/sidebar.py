@@ -25,7 +25,7 @@ def render_sidebar() -> None:
         st.markdown('<div class="sb-section-label">How it works</div>', unsafe_allow_html=True)
         st.markdown(
             '<ul class="sb-list">'
-            '<li><b>Rankings & facts</b> — top films, directors, latest, highest-grossing.</li>'
+            '<li><b>Rankings & facts</b> — top films, latest, highest-grossing.</li>'
             '<li><b>About a film</b> — plot, cast and details for any title.</li>'
             '<li><b>Recommendations</b> — "movies like Inception".</li>'
             '</ul>',

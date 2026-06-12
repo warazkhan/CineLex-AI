@@ -16,7 +16,7 @@ def root():
     return {"status": "ok", "service": "cinellex-ai"}
 
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 def health():
     # tmdb_enabled lets the UI warn loudly when the server has no TMDB key
     # (the app still answers, but with text and no posters).

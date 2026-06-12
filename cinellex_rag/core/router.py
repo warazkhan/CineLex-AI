@@ -32,7 +32,6 @@ ANALYTICS_KEYWORDS = [
     "latest",
     "recent",
     "release",
-    "director",
 ]
 
 
