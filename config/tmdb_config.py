@@ -1,9 +1,9 @@
-"""Configuration for runtime TMDB (The Movie Database) card enrichment.
+"""Configuration for the live TMDB (The Movie Database) data client.
 
-All values are read from the environment (``.env`` is loaded here so this
-module works regardless of import order). Enrichment is *opt-in*: with no
-``TMDB_API_KEY`` set, :data:`TMDB_ENABLED` is ``False`` and the app behaves
-exactly as before, serving the dataset's own poster URLs.
+TMDB is the app's only data source. All values are read from the environment
+(``.env`` is loaded here so this module works regardless of import order).
+With no ``TMDB_API_KEY`` set, :data:`TMDB_ENABLED` is ``False`` and every route
+degrades to a friendly "TMDB not configured" message instead of movie data.
 """
 import os
 

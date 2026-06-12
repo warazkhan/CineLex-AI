@@ -78,7 +78,7 @@ User Query → Query Router ────┼────────────�
                               ├── RAG        (tmdb /search + keyword/genre facets + Groq LLM)
                               └── Recommend  (tmdb /recommendations + CrewAI)
                                        ↓
-                              Response Formatter  →  Final Answer + cards
+                              Response builder (core/schema.py)  →  Final Answer + cards
 ```
 
 Every route emits the **same card shape**, so the API schema and UI need only one renderer.
@@ -88,34 +88,46 @@ Every route emits the **same card shape**, so the API schema and UI need only on
 ## ⚙ Project Structure
 
 ```text
-AI-LEARNING/
+CineLex-AI/
 ├── pyproject.toml              # build metadata, pytest config, deps (sourced from requirements.txt)
 ├── requirements.txt            # runtime dependencies for the app image / production service
 ├── requirements-dev.txt        # pytest + local/CI test tooling
 ├── requirements-eval.txt       # opt-in RAGAS evaluation extras (embeddings + ragas)
-├── config/                     # tmdb_config (auth/cache/tuning) + recommender-schema keys
+├── run_api.py                  # convenience launcher for the FastAPI app (uvicorn)
+├── streamlit_app.py            # thin UI launcher → ui/app.py
+├── config/                     # tmdb_config (auth/cache/tuning) + data/schema config keys
+│   ├── tmdb_config.py
+│   ├── data_config.py
+│   └── schema_config.py
 ├── data/                       # only the regenerable TMDB response cache (tmdb_cache.json, gitignored)
 ├── cinellex_rag/
-│   ├── api/                    # FastAPI app + schemas
+│   ├── api/                    # FastAPI app + request/response schemas
+│   │   ├── app.py
+│   │   └── schemas.py
 │   ├── core/
 │   │   ├── router.py           # single-source query routing (recommend > analytics > rag)
 │   │   ├── tmdb.py             # ← the ONLY data source: HTTP + auth + cache + endpoint wrappers
 │   │   ├── movies.py           # maps raw TMDB dicts → the UI's movie "card" shape
 │   │   ├── analytics.py        # ranking queries over TMDB /discover
 │   │   ├── movie_recommender.py# similar movies via TMDB /recommendations
-│   │   ├── formatter.py        # answer text shaping
-│   │   └── schema.py           # response builder
+│   │   └── schema.py           # uniform response builder
 │   ├── retrieval/              # rag.py — facet (concept) retrieval + LLM knowledge answers
-│   ├── crew/                   # CrewAI 3-agent recommendation crew
+│   ├── agents/                 # rag_agent.py — query validation + CLI answer formatting
+│   ├── crew/                   # CrewAI recommendation crew (agents.py · tasks.py · crew.py)
 │   ├── graph/                  # LangGraph: route → {analytics|rag|recommend} → format
-│   ├── observability/          # MLflow logging
+│   ├── observability/          # opt-in MLflow run logging (no-op unless MLFLOW_TRACKING_URI set)
 │   └── utils/                  # llm_utils (Groq client factory)
+├── ui/                         # Streamlit UI package
+│   ├── app.py                  # UI entry point
+│   ├── api_client.py           # calls the FastAPI backend
+│   ├── config.py · styles.py · state.py · search_handler.py
+│   ├── components/             # hero · search · suggestions · results · movie_cards · sidebar · notices
+│   └── assets/styles.css
 ├── tests/                      # pytest suite (TMDB + LLM fully mocked — offline)
-├── evaluation/                 # opt-in RAGAS harness + 15-question ground-truth dataset
+├── evaluation/                 # opt-in RAGAS harness + 15-question ground-truth dataset + results/
+├── k8s/                        # staging/production manifests + ArgoCD applications
 ├── .github/workflows/          # CI/CD pipeline (tests, Docker build, Render hooks)
-├── streamlit_app.py            # UI launcher (thin) → ui/app.py
-├── ui/                         # Streamlit UI package (config, styles, api_client, components/)
-├── k8s/                        # staging/production manifests + ArgoCD
+├── render.yaml                 # Render blueprint (API + UI services)
 └── Dockerfile / docker-compose.yml
 ```
 
@@ -178,7 +190,7 @@ recommend movies like Inception
 - CrewAI (3-agent recommendation crew — recommendation path only)
 - LangGraph (orchestration)
 - FastAPI + Streamlit
-- MLflow (observability)
+- MLflow-skinny (opt-in observability — no-op unless `MLFLOW_TRACKING_URI` is set)
 - RAGAS (opt-in offline RAG evaluation — `requirements-eval.txt`)
 - Docker · Kubernetes · ArgoCD (GitOps)
 - GitHub Actions + Render deploy hooks for CI/CD
@@ -208,6 +220,7 @@ cp .env.example .env        # add your free GROQ_API_KEY and TMDB_API_KEY
 
 # 4. Run the API + UI  (no data-ingestion step — the app is live on TMDB)
 uvicorn cinellex_rag.api.app:app --reload        # http://localhost:8000
+#   (or: python run_api.py)
 # Health check: http://localhost:8000/health
 # Docs:         http://localhost:8000/docs
 streamlit run streamlit_app.py                   # http://localhost:8501

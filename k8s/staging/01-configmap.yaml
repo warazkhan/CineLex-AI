@@ -4,5 +4,6 @@ metadata:
   name: cinellex-config
   namespace: cinellex-staging
 data:
-  MLFLOW_TRACKING_URI: "file:///app/mlruns"
-  API_URL: "http://cinellex-api-svc.cinellex.svc.cluster.local:8000"
+  # In-cluster DNS for the API ClusterIP service (05-api-nodeport.yaml). Must
+  # carry the real namespace — a bare ".cinellex." does not resolve.
+  API_URL: "http://cinellex-api-svc.cinellex-staging.svc.cluster.local:8000"

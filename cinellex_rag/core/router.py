@@ -1,8 +1,8 @@
 """
 Single source of truth for query routing.
 
-Replaces the keyword lists that had drifted out of sync across
-graph/nodes.py, tools/registry.py and crew/crew.py.
+One keyword table, imported by the graph nodes and the recommendation crew, so
+the routing rules can never drift apart again.
 
 Precedence: recommend > analytics > rag (default).
 A query like "recommend top films like Inception" contains the analytics
