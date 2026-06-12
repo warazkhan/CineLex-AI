@@ -239,6 +239,20 @@ python evaluation/run_ragas.py --ablation      # RAGAS: concept retrieval OFF vs
 python evaluation/run_ragas.py --retrieval     # fast title hit-rate@k (no judge), OFF vs ON
 ```
 
+**RAGAS answer-quality scores** (baseline, `k=3`, 15 thematic ground-truth questions;
+Groq `llama-3.1-8b-instant` judge + `all-MiniLM-L6-v2` embeddings):
+
+| Metric | Score |
+| --- | --- |
+| Faithfulness | **0.69** |
+| Answer relevancy | **0.88** |
+| Context precision | **0.71** |
+| Context recall | **0.80** |
+
+These score the **end-to-end answer** (is it grounded in, and relevant to, the retrieved
+context?). The ablation below instead isolates **retrieval** — does the right film get
+pulled in the first place? — which is what the concept-retrieval upgrade targets.
+
 **Concept-retrieval ablation (15 thematic ground-truth questions, hit-rate@3):**
 
 | Retriever | Hit-rate@3 |
@@ -287,7 +301,7 @@ facet quality is bounded by the free-tier 8B model rather than the retrieval log
 ## 🔮 Planned Improvements (v2)
 
 - 🔁 LLM reranking of the facet/title candidate set (facet extraction already ships)
-- 🧠 Memory-augmented agent
+- 🧠 Conversation memory across multi-turn queries
 - 🌍 Multi-language / region-aware results (TMDB supports both)
 - 📈 Larger evaluation set + automated eval in CI
 
