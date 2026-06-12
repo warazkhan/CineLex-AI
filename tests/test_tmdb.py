@@ -61,11 +61,14 @@ DETAILS_RESULT = {
 RECS_RESULT = {"results": [{"id": 238}, {"id": 240}, {"id": 424}]}
 DISCOVER_RESULT = {"results": [{"id": 278}, {"id": 238}]}
 GENRES_RESULT = {"genres": [{"id": 18, "name": "Drama"}, {"id": 80, "name": "Crime"}]}
+KEYWORD_RESULT = {"results": [{"id": 9840, "name": "heist"}, {"id": 4565, "name": "dystopia"}]}
 
 
 def _fake_get(path, params=None):
     if path == "/search/movie":
         return SEARCH_RESULT
+    if path == "/search/keyword":
+        return KEYWORD_RESULT
     if path.endswith("/recommendations"):
         return RECS_RESULT
     if path.startswith("/movie/"):
@@ -118,6 +121,27 @@ def test_search_movies_respects_limit(monkeypatch):
 def test_movie_recommendations_respects_limit():
     recs = tmdb.movie_recommendations(278, limit=2)
     assert [r["id"] for r in recs] == [238, 240]
+
+
+def test_search_keywords_returns_records_and_respects_limit():
+    kws = tmdb.search_keywords("heist", limit=1)
+    assert kws == [{"id": 9840, "name": "heist"}]
+
+
+def test_discover_forwards_keyword_and_genre_filters(monkeypatch):
+    captured = {}
+
+    def capturing_get(path, params=None):
+        captured.update(params or {})
+        return DISCOVER_RESULT
+
+    monkeypatch.setattr(tmdb, "_get", capturing_get)
+
+    tmdb.discover("popularity.desc", with_keywords="9840,4565", with_genres="80")
+
+    assert captured["with_keywords"] == "9840,4565"
+    assert captured["with_genres"] == "80"
+    assert captured["sort_by"] == "popularity.desc"
 
 
 def test_genre_map_has_int_keys():
@@ -176,6 +200,7 @@ def test_wrappers_short_circuit_when_disabled(monkeypatch):
 
     assert tmdb.search_movies("Heat") == []
     assert tmdb.search_movie("Heat") is None
+    assert tmdb.search_keywords("heist") == []
     assert tmdb.movie_details(278) is None
     assert tmdb.movie_recommendations(278) == []
     assert tmdb.discover("vote_average.desc") == []

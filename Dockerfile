@@ -28,6 +28,14 @@ COPY requirements.txt .
 RUN pip install --upgrade pip --quiet && \
     pip install --no-cache-dir -r requirements.txt
 
+# Force a fresh source copy on every commit. CI passes the commit SHA as
+# CACHE_BUST; consuming it in the RUN below changes the cache key for this layer
+# (and therefore everything after it, including the COPY), so the build-cache can
+# never serve a stale `COPY . .`. Everything above this line — base image and the
+# pip-install layer — still caches normally, so builds stay fast.
+ARG CACHE_BUST=local
+RUN echo "source build: ${CACHE_BUST}"
+
 COPY . .
 
 # No build-time data step: there is no CSV to copy and no SQLite/Chroma store to

@@ -1,31 +1,17 @@
-"""Renders structured movie cards (hero card, poster grid, director cards).
+"""Renders structured movie cards (hero card, poster grid).
 
 All paths return the same card shape (see cinellex_rag/core/movies.py), so this
 is the single place that knows how a movie looks on screen.
 """
 import html
-import re
 
 import streamlit as st
-
-from ui.config import POSTER_WIDTH
-
-
-def _upscale_poster(url: str) -> str:
-    """Request a larger poster from the Amazon media CDN.
-
-    Dataset URLs look like ``..._V1_UX67_CR0,0,67,98_AL_.jpg`` (a 67px thumb);
-    swapping the size directive yields a crisp full-size poster.
-    """
-    if not url:
-        return url
-    return re.sub(r"\._V1_.*?\.jpg$", f"._V1_UX{POSTER_WIDTH}.jpg", url)
 
 
 def _poster(url: str, css_class: str) -> str:
     if url:
         return (
-            f'<img class="{css_class}" src="{html.escape(_upscale_poster(url))}" '
+            f'<img class="{css_class}" src="{html.escape(url)}" '
             f'loading="lazy" alt="">'
         )
     # Empty div — the placeholder art (icon + label) is drawn in CSS so the
@@ -109,10 +95,6 @@ def _card_html(m: dict) -> str:
         sub = html.escape(" · ".join(bits))
 
     badge = _rating_badge(m.get("rating"))
-    overview = (
-        f'<div class="mc-note">{html.escape(m["overview"])}</div>'
-        if m.get("kind") == "director" and m.get("overview") else ""
-    )
     trailer = _trailer_link(m.get("trailer"), css_class="trailer-link mc-trailer")
 
     return (
@@ -121,7 +103,7 @@ def _card_html(m: dict) -> str:
         f'  <div class="mc-body">'
         f'    <div class="mc-title">{title}</div>'
         f'    <div class="mc-sub">{sub}</div>'
-        f'    {overview}{trailer}'
+        f'    {trailer}'
         f'  </div>'
         f'</div>'
     )

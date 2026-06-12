@@ -401,7 +401,6 @@ section[data-testid="stSidebar"] .block-container { padding: 1.8rem 1.4rem !impo
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 .mc-sub { font-size: 0.72rem; color: var(--text-mute) !important; margin-top: 3px; }
-.mc-note { font-size: 0.72rem; color: var(--gold) !important; margin-top: 5px; }
 
 /* ── POSTER FALLBACK ──
    Shown when a movie has no poster URL (an empty .poster-fallback div) OR

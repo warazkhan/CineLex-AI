@@ -6,6 +6,7 @@ component. Run via the root launcher: ``streamlit run streamlit_app.py``.
 import streamlit as st
 
 from ui.components.hero import render_hero
+from ui.components.notices import render_config_notice
 from ui.components.results import render_results
 from ui.components.search import render_action_buttons, render_search_bar
 from ui.components.sidebar import render_sidebar
@@ -24,6 +25,7 @@ def main() -> None:
 
     render_sidebar()
     render_hero()
+    render_config_notice()
 
     query = render_search_bar()
     render_action_buttons(query)

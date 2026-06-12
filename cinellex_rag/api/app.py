@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from cinellex_rag.api.schemas import QueryRequest, QueryResponse
 from cinellex_rag.graph.graph import run_graph
 from cinellex_rag.agents.rag_agent import is_valid_query
+from config.tmdb_config import TMDB_ENABLED
 
 app = FastAPI(
     title="CineLex AI",
@@ -15,9 +16,11 @@ def root():
     return {"status": "ok", "service": "cinellex-ai"}
 
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 def health():
-    return {"status": "ok", "service": "cinellex-ai"}
+    # tmdb_enabled lets the UI warn loudly when the server has no TMDB key
+    # (the app still answers, but with text and no posters).
+    return {"status": "ok", "service": "cinellex-ai", "tmdb_enabled": TMDB_ENABLED}
 
 
 @app.post("/query", response_model=QueryResponse)

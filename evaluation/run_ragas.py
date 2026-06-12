@@ -13,6 +13,8 @@ Usage:
     python evaluation/run_ragas.py                  # baseline, k=3
     python evaluation/run_ragas.py --k 5            # single run at k=5
     python evaluation/run_ragas.py --experiment     # baseline (k=3) vs improved (k=5)
+    python evaluation/run_ragas.py --ablation       # facets OFF vs ON (the concept-retrieval upgrade)
+    python evaluation/run_ragas.py --retrieval      # fast title hit-rate@k, no judge/embeddings
     python evaluation/run_ragas.py --limit 3        # smoke test on 3 questions
 """
 
@@ -60,16 +62,17 @@ METRICS = [faithfulness, answer_relevancy, context_precision, context_recall]
 INPUT_COLS = {"user_input", "response", "retrieved_contexts", "reference"}
 
 
-def build_samples(questions, k):
+def build_samples(questions, k, use_facets=True):
     """Run the RAG pipeline for each question, capturing answer + contexts.
 
     Fuzzy short-circuit is disabled so RAGAS evaluates the real retriever.
+    ``use_facets`` toggles the concept (keyword/genre) retrieval upgrade.
     """
     samples = []
     for i, item in enumerate(questions, 1):
         q = item["question"]
         print(f"  [{i}/{len(questions)}] generating: {q[:60]}...")
-        res = handle_rag(q, k=k, use_fuzzy=False)
+        res = handle_rag(q, k=k, use_fuzzy=False, use_facets=use_facets)
         samples.append({
             "user_input": q,
             "response": res["answer"],
@@ -77,6 +80,31 @@ def build_samples(questions, k):
             "reference": item["ground_truth"],
         })
     return samples
+
+
+def _expected_title(ground_truth: str) -> str:
+    """The film title at the head of a ground-truth string, e.g.
+    'The Godfather, directed by ...' → 'The Godfather'."""
+    head = ground_truth.split(", directed")[0]
+    head = head.split(",")[0].split(".")[0]
+    return head.strip().lower()
+
+
+def retrieval_hitrate(questions, k, use_facets):
+    """Judge-free metric: fraction of questions whose expected film appears in
+    the top-k retrieved cards. Directly measures the concept-retrieval upgrade
+    without spending RAGAS judge quota."""
+    hits = 0
+    for i, item in enumerate(questions, 1):
+        q = item["question"]
+        want = _expected_title(item["ground_truth"])
+        res = handle_rag(q, k=k, use_fuzzy=False, use_facets=use_facets)
+        titles = [(m.get("title") or "").lower() for m in res.get("movies", [])]
+        hit = any(want and (want in t or t in want) for t in titles)
+        hits += hit
+        mark = "HIT " if hit else "miss"
+        print(f"  [{i}/{len(questions)}] {mark} want={want!r:35} got={titles}")
+    return round(hits / len(questions), 4) if questions else 0.0
 
 
 def get_judge():
@@ -93,8 +121,8 @@ def get_embeddings():
     return HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
 
 
-def run_eval(questions, k, judge, embeddings, run_config):
-    samples = build_samples(questions, k)
+def run_eval(questions, k, judge, embeddings, run_config, use_facets=True):
+    samples = build_samples(questions, k, use_facets=use_facets)
     dataset = EvaluationDataset.from_list(samples)
 
     result = evaluate(
@@ -123,11 +151,34 @@ def main():
     parser.add_argument("--limit", type=int, default=None, help="limit number of questions (smoke test)")
     parser.add_argument("--k", type=int, default=3, help="retriever top-k")
     parser.add_argument("--experiment", action="store_true", help="run baseline (k=3) vs improved (k=5)")
+    parser.add_argument("--ablation", action="store_true", help="RAGAS: facets OFF vs ON at --k")
+    parser.add_argument("--retrieval", action="store_true", help="fast title hit-rate@k, facets OFF vs ON (no judge)")
     args = parser.parse_args()
 
     questions = json.loads(GT_PATH.read_text(encoding="utf-8"))
     if args.limit:
         questions = questions[:args.limit]
+
+    # Fast, judge-free retrieval ablation — measures the concept-retrieval fix
+    # directly (does the right film get retrieved?) without RAGAS/embeddings.
+    if args.retrieval:
+        print(f"\n=== retrieval hit-rate@{args.k} on {len(questions)} questions ===")
+        print("\n-- facets OFF (legacy title search) --")
+        off = retrieval_hitrate(questions, args.k, use_facets=False)
+        print("\n-- facets ON (concept retrieval) --")
+        on = retrieval_hitrate(questions, args.k, use_facets=True)
+        print("\n" + "-" * 48)
+        print(f"  hit-rate facets OFF: {off:.4f}")
+        print(f"  hit-rate facets ON : {on:.4f}")
+        print(f"  delta              : {on - off:+.4f}")
+        RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+        out_path = RESULTS_DIR / "retrieval_hitrate.json"
+        out_path.write_text(json.dumps(
+            {"timestamp": time.strftime("%Y-%m-%d %H:%M:%S"), "k": args.k,
+             "num_questions": len(questions), "facets_off": off, "facets_on": on},
+            indent=2), encoding="utf-8")
+        print(f"\nSaved -> {out_path}")
+        return
 
     judge = get_judge()
     embeddings = LangchainEmbeddingsWrapper(get_embeddings())
@@ -135,19 +186,28 @@ def main():
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
-    configs = [("baseline", 3), ("improved", 5)] if args.experiment else [("baseline", args.k)]
+    # (name, k, use_facets)
+    if args.ablation:
+        configs = [("facets_off", args.k, False), ("facets_on", args.k, True)]
+    elif args.experiment:
+        configs = [("baseline", 3, True), ("improved", 5, True)]
+    else:
+        configs = [("baseline", args.k, True)]
 
     runs = {}
-    for name, k in configs:
-        print(f"\n=== {name} (k={k}) on {len(questions)} questions ===")
-        scores = run_eval(questions, k, judge, embeddings, run_config)
-        runs[name] = {"k": k, "num_questions": len(questions), "scores": scores}
+    for name, k, use_facets in configs:
+        print(f"\n=== {name} (k={k}, facets={use_facets}) on {len(questions)} questions ===")
+        scores = run_eval(questions, k, judge, embeddings, run_config, use_facets=use_facets)
+        runs[name] = {"k": k, "facets": use_facets, "num_questions": len(questions), "scores": scores}
         print_table(f"{name} scores (k={k})", scores)
 
-    if args.experiment and "baseline" in runs and "improved" in runs:
-        print("\n=== improvement: improved(k=5) - baseline(k=3) ===")
+    pair = (("baseline", "improved") if args.experiment
+            else ("facets_off", "facets_on") if args.ablation else None)
+    if pair and pair[0] in runs and pair[1] in runs:
+        lo, hi = pair
+        print(f"\n=== improvement: {hi} - {lo} ===")
         print("-" * 48)
-        base, imp = runs["baseline"]["scores"], runs["improved"]["scores"]
+        base, imp = runs[lo]["scores"], runs[hi]["scores"]
         for name in base:
             if name in imp:
                 delta = imp[name] - base[name]
@@ -155,7 +215,8 @@ def main():
                 print(f"  {name:<34} {delta:+.4f} {arrow}")
 
     out = {"timestamp": time.strftime("%Y-%m-%d %H:%M:%S"), "runs": runs}
-    out_path = RESULTS_DIR / ("experiment.json" if args.experiment else "baseline.json")
+    fname = "ablation.json" if args.ablation else "experiment.json" if args.experiment else "baseline.json"
+    out_path = RESULTS_DIR / fname
     out_path.write_text(json.dumps(out, indent=2), encoding="utf-8")
     print(f"\nSaved -> {out_path}")
 

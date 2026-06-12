@@ -24,16 +24,11 @@ PAGE_CONFIG = {
     "initial_sidebar_state": "collapsed",
 }
 
-# Poster thumbnails come from the dataset at ~67px wide; this is the width we
-# request from the Amazon media CDN when rendering cards.
-POSTER_WIDTH = 400
-
 # --- Content ----------------------------------------------------------------
 # Example queries shown as clickable chips until the first search is made.
 SUGGESTIONS = [
     "Top 10 movies by rating",
     "Tell me about Inception",
-    "Top 10 directors",
     "Worst rated movies",
     "Latest releases",
     "Highest grossing movies",

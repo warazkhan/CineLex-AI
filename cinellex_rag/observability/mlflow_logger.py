@@ -33,10 +33,7 @@ class MLflowLogger:
         self._route = route
 
     def log_node(self, node: str, metadata: dict = None):
-        pass  # collected at end
-
-    def log_latency(self, step: str):
-        pass  # collected at end
+        pass  # node-level detail is summarised into the single end-of-run record
 
     def log_response(self, response: dict):
         # extract source from response metadata

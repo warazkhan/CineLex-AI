@@ -26,7 +26,7 @@ spec:
       containers:
         - name: api
           image: warazkhan/cinellex-ai:latest   # CI will update this to the SHA
-          imagePullPolicy: Always               # ��� was IfNotPresent; needed since you reuse :latest tag
+          imagePullPolicy: Always               # was IfNotPresent; needed since the :latest tag is reused
           ports:
             - containerPort: 8000
           envFrom:

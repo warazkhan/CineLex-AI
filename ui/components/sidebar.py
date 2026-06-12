@@ -17,14 +17,15 @@ def render_sidebar() -> None:
         st.markdown(
             '<p class="sb-about">CineLex is an AI movie companion. Ask in plain '
             'English — it figures out whether you want facts, a summary, or a '
-            'recommendation, and answers from the IMDB Top 1000.</p>',
+            'recommendation, and answers using live data from The Movie '
+            'Database (TMDB).</p>',
             unsafe_allow_html=True,
         )
 
         st.markdown('<div class="sb-section-label">How it works</div>', unsafe_allow_html=True)
         st.markdown(
             '<ul class="sb-list">'
-            '<li><b>Rankings & facts</b> — top films, directors, latest, highest-grossing.</li>'
+            '<li><b>Rankings & facts</b> — top films, latest, highest-grossing.</li>'
             '<li><b>About a film</b> — plot, cast and details for any title.</li>'
             '<li><b>Recommendations</b> — "movies like Inception".</li>'
             '</ul>',
@@ -42,6 +43,6 @@ def render_sidebar() -> None:
         )
 
         st.markdown(
-            '<div class="sb-footer">Data: IMDB Top 1000 · Built with FastAPI</div>',
+            '<div class="sb-footer">Data: The Movie Database (TMDB) · Built with FastAPI</div>',
             unsafe_allow_html=True,
         )

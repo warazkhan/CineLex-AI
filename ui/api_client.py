@@ -50,14 +50,28 @@ def call_api(query: str) -> Tuple[Optional[dict], Optional[str]]:
 
 
 @st.cache_data(ttl=15, show_spinner=False)
-def is_backend_healthy() -> bool:
-    """Return True if ``GET /health`` responds OK.
+def backend_status() -> dict:
+    """Return ``{"healthy": bool, "tmdb_enabled": bool}`` from ``GET /health``.
 
-    Cached for a few seconds so the indicator does not add latency to every
+    Cached for a few seconds so the status checks do not add latency to every
     rerun, while still reflecting the backend going up/down reasonably fast.
+    ``tmdb_enabled`` defaults to True when absent so an older API build (whose
+    /health predates the flag) never triggers a false "not configured" warning.
     """
     try:
         resp = requests.get(f"{API_URL}/health", timeout=HEALTH_TIMEOUT)
-        return resp.status_code == 200
     except requests.exceptions.RequestException:
-        return False
+        return {"healthy": False, "tmdb_enabled": False}
+
+    if resp.status_code != 200:
+        return {"healthy": False, "tmdb_enabled": False}
+    try:
+        body = resp.json()
+    except ValueError:
+        body = {}
+    return {"healthy": True, "tmdb_enabled": bool(body.get("tmdb_enabled", True))}
+
+
+def is_backend_healthy() -> bool:
+    """True if the backend answers ``GET /health`` OK (thin wrapper)."""
+    return backend_status()["healthy"]

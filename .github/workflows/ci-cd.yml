@@ -73,8 +73,14 @@ jobs:
           tags: |
             warazkhan/cinellex-ai:${{ github.sha }}
             warazkhan/cinellex-ai:staging
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+            warazkhan/cinellex-ai:latest
+          build-args: |
+            CACHE_BUST=${{ github.sha }}
+          # Scope the cache per branch so dev/main don't poison each other. The
+          # cache still accelerates the pip-install layer; CACHE_BUST guarantees
+          # the source COPY is always rebuilt regardless of what's cached.
+          cache-from: type=gha,scope=staging
+          cache-to: type=gha,mode=max,scope=staging
 
       - name: Build and push (production tag)
         if: github.ref == 'refs/heads/main'
@@ -85,8 +91,13 @@ jobs:
           tags: |
             warazkhan/cinellex-ai:${{ github.sha }}
             warazkhan/cinellex-ai:stable
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          build-args: |
+            CACHE_BUST=${{ github.sha }}
+          # Scope the cache per branch so dev/main don't poison each other. The
+          # cache still accelerates the pip-install layer; CACHE_BUST guarantees
+          # the source COPY is always rebuilt regardless of what's cached.
+          cache-from: type=gha,scope=production
+          cache-to: type=gha,mode=max,scope=production
 
       # ── Render auto-deploy: ping the deploy hooks after the image is pushed ──
       - name: Trigger Render deploy (API)

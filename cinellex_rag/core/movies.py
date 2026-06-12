@@ -19,7 +19,6 @@ from config.tmdb_config import (
 )
 
 KIND_MOVIE = "movie"
-KIND_DIRECTOR = "director"
 
 
 # --------------------------------------------------------------------------- #
@@ -177,23 +176,3 @@ def card_from_title(title: str, year=None, subtitle: Optional[str] = None) -> Op
         return card_from_search(hit, subtitle=subtitle)
     card = card_from_details(details, subtitle=subtitle)
     return card
-
-
-def director_card(name: str, count: int, top_card: Optional[dict] = None) -> dict:
-    """Card representing a director (name + film count + a representative poster
-    taken from one of their films, passed in as an already-built movie card)."""
-    top_card = top_card or {}
-    best = top_card.get("title")
-    rating = top_card.get("rating")
-    return {
-        "kind": KIND_DIRECTOR,
-        "title": name,
-        "subtitle": f"{count} {'film' if count == 1 else 'films'} in TMDB's top-rated",
-        "poster": top_card.get("poster"),
-        "overview": f"Top-rated: {best} (★ {rating})" if best else None,
-        "rating": None,
-        "year": None,
-        "genre": None,
-        "director": None,
-        "stars": [],
-    }
