@@ -8,7 +8,7 @@ import streamlit as st
 from ui.components.hero import render_hero
 from ui.components.notices import render_config_notice
 from ui.components.results import render_results
-from ui.components.search import render_action_buttons, render_search_bar
+from ui.components.search import render_search_bar
 from ui.components.sidebar import render_sidebar
 from ui.components.suggestions import render_suggestions
 from ui.config import PAGE_CONFIG
@@ -27,8 +27,7 @@ def main() -> None:
     render_hero()
     render_config_notice()
 
-    query = render_search_bar()
-    render_action_buttons(query)
+    render_search_bar()
     render_suggestions()
 
     # Execute any queued search before painting results so the answer shows

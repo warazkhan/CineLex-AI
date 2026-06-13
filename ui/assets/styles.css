@@ -99,8 +99,12 @@ html, body,
     margin: 1.8rem 0 0.7rem;
 }
 
-/* ── ALL BUTTONS base ── */
-.stButton > button {
+/* Hide Streamlit's "Press Enter to submit/apply" helper text — it's obvious. */
+[data-testid="InputInstructions"] { display: none !important; }
+
+/* ── ALL BUTTONS base (regular + form-submit) ── */
+.stButton > button,
+div[data-testid="stFormSubmitButton"] > button {
     font-family: 'Outfit', sans-serif !important;
     font-weight: 500 !important;
     font-size: 0.82rem !important;
@@ -123,13 +127,15 @@ html, body,
     border: 1px solid var(--border2) !important;
     box-shadow: none !important;
 }
-.stButton > button:hover {
+.stButton > button:hover,
+div[data-testid="stFormSubmitButton"] > button:hover {
     border-color: var(--gold) !important;
     color: var(--gold) !important;
     background: var(--gold-dim) !important;
     transform: translateY(-1px) !important;
 }
-.stButton > button:active { transform: translateY(0) !important; }
+.stButton > button:active,
+div[data-testid="stFormSubmitButton"] > button:active { transform: translateY(0) !important; }
 
 /* ── INPUT ── */
 .stTextInput > div > div > input {
@@ -151,8 +157,9 @@ html, body,
 /* Streamlit wraps the input in its own surface — keep it dark too */
 .stTextInput > div > div { background: var(--surface2) !important; }
 
-/* ── CLEAR (×) button — sits in a narrow column beside the search input ── */
-.st-key-clear_input .stButton > button {
+/* ── CLEAR (×) button — a form-submit button in a narrow column beside the
+   input. Extra specificity (key class + testid) beats the base button rule. ── */
+.st-key-clear_input [data-testid="stFormSubmitButton"] > button {
     width: 44px !important;
     min-height: 44px !important;
     height: 44px !important;
@@ -167,20 +174,65 @@ html, body,
     align-items: center !important;
     justify-content: center !important;
 }
-.st-key-clear_input .stButton > button:hover {
+.st-key-clear_input [data-testid="stFormSubmitButton"] > button:hover {
     background: var(--gold-dim) !important;
     color: var(--gold) !important;
     border-color: var(--gold) !important;
     transform: none !important;
 }
 
-/* ── ASK button override ── */
-div[data-testid="column"] [data-testid="stButton-ask_btn"] button,
-button[kind="primaryFormSubmit"],
-#ask_btn button {
+/* ── ASK button (primary form-submit) ── */
+button[kind="primaryFormSubmit"] {
     background: var(--gold) !important;
     color: var(--on-gold) !important;
     border: none !important;
+}
+button[kind="primaryFormSubmit"]:hover {
+    background: var(--gold-soft) !important;
+    color: var(--on-gold) !important;
+    border: none !important;
+}
+/* Disabled while a search is running — dimmed and non-interactive. */
+div[data-testid="stFormSubmitButton"] > button:disabled,
+button[kind="primaryFormSubmit"]:disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    background: var(--gold) !important;
+    color: var(--on-gold) !important;
+}
+
+/* ── SEARCH LOADER (shown near the bar while a query runs) ── */
+.search-loader {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0.75rem 0 0.2rem;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.82rem;
+    letter-spacing: 0.02em;
+    color: var(--gold) !important;
+}
+.search-spinner {
+    width: 15px; height: 15px;
+    flex-shrink: 0;
+    border: 2px solid var(--gold-dim);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── SEARCH ERROR ── */
+.search-error {
+    background: var(--red-bg);
+    border: 1px solid var(--red-border);
+    border-left: 3px solid var(--red);
+    border-radius: 10px;
+    padding: 0.85rem 1.1rem;
+    margin-top: 0.6rem;
+    font-size: 0.86rem;
+    color: var(--red) !important;
 }
 
 /* ── ANSWER CARD ── */
@@ -436,6 +488,24 @@ section[data-testid="stSidebar"] .block-container { padding: 1.8rem 1.4rem !impo
 
 /* ── RECENT SEARCHES ── */
 .recent-label { font-size: 0.68rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-mute) !important; margin: 2rem 0 0.7rem; }
+
+/* Subtle "Clear history" control beside the Recent-searches label. */
+.st-key-clear_hist button {
+    min-height: 34px !important;
+    height: 34px !important;
+    font-size: 0.7rem !important;
+    letter-spacing: 0.04em !important;
+    padding: 0 0.7rem !important;
+    background: transparent !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text-mute) !important;
+}
+.st-key-clear_hist button:hover {
+    border-color: var(--red) !important;
+    color: var(--red) !important;
+    background: var(--red-bg) !important;
+    transform: none !important;
+}
 
 /* ── SIDEBAR ABOUT ── */
 .sb-about { font-size: 0.82rem; line-height: 1.6; color: var(--text-dim) !important; margin-bottom: 0.5rem; }

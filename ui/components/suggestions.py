@@ -17,6 +17,7 @@ def render_suggestions() -> None:
             if st.button(suggestion, key=f"chip_{i}", use_container_width=True):
                 st.session_state.prefill = suggestion
                 st.session_state.pending_query = suggestion
-                st.session_state.trigger_search = True
+                st.session_state.search_error = ""
+                st.session_state.searching = True
                 st.session_state.widget_version += 1
                 st.rerun()

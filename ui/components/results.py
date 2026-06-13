@@ -6,6 +6,7 @@ import streamlit as st
 
 from ui.components.movie_cards import render_movie_grid, render_movie_hero
 from ui.config import MAX_HISTORY_ITEMS
+from ui.state import reset_history
 
 # Routes whose text answer is a real narrative worth showing alongside cards.
 _NARRATIVE_ROUTES = {"recommend", "rag"}
@@ -86,7 +87,16 @@ def _render_recent(items: list) -> None:
     if not items:
         return
 
-    st.markdown('<div class="recent-label">Recent searches</div>', unsafe_allow_html=True)
+    # Header row: the "Recent searches" label with a subtle Clear control on the
+    # right — it lives here because this is the history it actually clears.
+    head, action = st.columns([3, 1], vertical_alignment="center")
+    with head:
+        st.markdown('<div class="recent-label">Recent searches</div>', unsafe_allow_html=True)
+    with action:
+        if st.button("Clear history", key="clear_hist", use_container_width=True):
+            reset_history()
+            st.rerun()
+
     for i, item in enumerate(items):
         icon = "📊" if item.get("route") == "analytics" else (
             "✨" if item.get("route") == "recommend" else "🎬"
@@ -94,7 +104,8 @@ def _render_recent(items: list) -> None:
         if st.button(f"{icon}  {item['query']}", key=f"recent_{i}", use_container_width=True):
             st.session_state.prefill = item["query"]
             st.session_state.pending_query = item["query"]
-            st.session_state.trigger_search = True
+            st.session_state.search_error = ""
+            st.session_state.searching = True
             st.session_state.widget_version += 1
             st.rerun()
 

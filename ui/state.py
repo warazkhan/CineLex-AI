@@ -22,4 +22,6 @@ def reset_history() -> None:
     st.session_state.history = []
     st.session_state.pending_query = ""
     st.session_state.prefill = ""
+    st.session_state.search_error = ""
+    st.session_state.searching = False
     st.session_state.widget_version += 1

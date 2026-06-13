@@ -42,7 +42,8 @@ MAX_HISTORY_ITEMS = 7
 SESSION_DEFAULTS = {
     "history": [],          # list[dict]: {query, answer, route, source}
     "prefill": "",          # text currently bound to the search box
-    "trigger_search": False,  # set True to run a search on the next rerun
+    "searching": False,     # True while a query is queued/running (loader + disabled Ask)
+    "search_error": "",     # last error message, shown under the search box
     "pending_query": "",    # the query waiting to be executed
     "widget_version": 0,    # bumped to force-reset the text_input widget
 }
